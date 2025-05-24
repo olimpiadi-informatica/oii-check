@@ -33,8 +33,6 @@ def index():
     return render_template('index.html')
 
 def _verify_token(token):
-    print(f"Verifying token: {token}")
-    print(tokens)
     if token not in tokens_dict:
         return False
     return True

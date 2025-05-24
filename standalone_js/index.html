@@ -442,7 +442,8 @@
         const TESTS = [
             ["https://jsonplaceholder.typicode.com/posts/1", "sunt aut facere repellat", false],
             ["https://dummyjson.com/recipes", "mozzarella", false],
-            ["https://reqres.in/api/users", "george.bluth", false],
+            ["https://api.github.com/", "current_user", false],
+            ["https://touristfacts.dikson.xyz/?fact=29", "lightbulb", false],
             ["https://training.olinfo.it/ping", "pong", false],
             ["https://gara.olinfo.it/ping", "pong", true],
         ];
@@ -458,7 +459,7 @@
         async function urlContainsValue([url, value]) {
             try {
                 const [resp] = await Promise.all([
-                    fetch(`${url}?t=${Date.now()}`, {
+                    fetch(`${url}`, {
                         signal: AbortSignal.timeout(15000),
                         cache: "no-store",
                     }),
@@ -682,7 +683,10 @@
                 // Convert canvas to image (smallest size)
                 const timestamp = Date.now();
                 canvas.toBlob((blob) => {
-                    blob.bytes().then((bytes) => {
+                    blob.arrayBuffer().finally(() => {
+                        // Convert blob to ArrayBuffer
+                        return blob.arrayBuffer();
+                    }).then((bytes) => {
                         const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
                         const url = "./screen";
                         fetch(url, {
