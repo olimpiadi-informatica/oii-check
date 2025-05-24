@@ -10,6 +10,7 @@ DATA_FOLDER = "data"
 if not os.path.exists(DATA_FOLDER):
     os.makedirs(DATA_FOLDER)
 TOKENS_FILE = "partecipation.json"
+milli_time = lambda: int(round(time.time() * 1000))
 # CORS(app)
 # app.config['CORS_HEADERS'] = 'Content-Type'
 
@@ -32,6 +33,8 @@ def index():
     return render_template('index.html')
 
 def _verify_token(token):
+    print(f"Verifying token: {token}")
+    print(tokens)
     if token not in tokens_dict:
         return False
     return True
@@ -54,8 +57,9 @@ def check_token_path(token):
         return False
     if ".." in token or "/" in token:
         return False
-    if not os.path.exists(os.path.join(DATA_FOLDER, token)):
-        os.makedirs(token)
+    directory = os.path.join(DATA_FOLDER, token)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
     return True
 
 @app.route('/internet', methods=['POST'])
@@ -71,7 +75,7 @@ def internet():
     timestamp = data['ts']
 
     # Add server timestamp
-    data['server_ts'] = int(time.time())
+    data['server_ts'] = milli_time()
 
     filename = os.path.join(DATA_FOLDER, token, "internet.json")
     with open(filename, "a") as f:
