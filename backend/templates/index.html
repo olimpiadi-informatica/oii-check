@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagina di Proctoring OII</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .token-form {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 10px;
+            width: 70%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3367d6;
+        }
+        .error-message {
+            color: #d32f2f;
+            margin-top: 10px;
+            display: none;
+        }
+        .success-message {
+            color: #388e3c;
+            margin-top: 10px;
+            display: none;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .content-section {
+            display: none;
+            margin-top: 20px;
+        }
+        .content-section h2 {
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .content-section ul {
+            padding-left: 20px;
+        }
+        .content-section li {
+            margin-bottom: 8px;
+        }
+        .content-section a {
+            color: #4285f4;
+            text-decoration: none;
+        }
+        .content-section a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Verifica il tuo token</h1>
+        
+        <div class="token-form">
+            <input type="text" id="token-input" placeholder="Enter your token here">
+            <button id="verify-button">Verifica Token</button>
+        </div>
+        
+        <div class="error-message" id="error-message">
+            Token non valido, per favore riprova.
+        </div>
+        
+        <div class="success-message" id="success-message">
+            Token verificato con successo!
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>Verifica token in corso...</p>
+        </div>
+
+        <div class="content-section" id="instructions">
+            <h2>Istruzioni per il controllo della gara</h2>
+            <p>Per favore, segui le istruzioni qui sotto per garantire un corretto svolgimento della gara:</p>
+            <ul>
+                <li><b>NON</b> chiudere questa pagina durante la gara.</li>
+                <li>Assicurati di condividere lo schermo (tutto lo schermo!) da questa pagina.</li>
+                <li>Assirucati che il blocco internet sia attivo (verificabile da questa pagina).</li>
+                <li>Assicurati di avere una connessione internet stabile.</li>
+                <li>Non utilizzare strumenti di aiuto esterni.</li>
+            </ul>
+            <p>È presente un'iconcina in basso a destra per assicurarsi del corretto funzionamento del blocco internet/condivisione schermo (icona verde = blocco/condivisione schermo funzionante).</p>
+            <p>Premendo l'icona è possibile riaprire la finestra di condivisione schermo e controllo internet.</p>
+        </div>
+
+        <div class="content-section" id="dynamic-content">
+
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const tokenInput = document.getElementById('token-input');
+            const verifyButton = document.getElementById('verify-button');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            const loadingElement = document.getElementById('loading');
+            const instructionsSection = document.getElementById('instructions');
+            const contentSection = document.getElementById('dynamic-content');
+            const tokenForm = document.querySelector('.token-form');
+            
+            verifyButton.addEventListener('click', verifyToken);
+            
+            // Also allow pressing Enter to submit
+            tokenInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    verifyToken();
+                }
+            });
+            
+            function verifyToken() {
+                // Hide any previous messages
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                contentSection.style.display = 'none';
+                
+                // Show loading indicator
+                loadingElement.style.display = 'block';
+                
+                const token = tokenInput.value.trim();
+                
+                if (!token) {
+                    errorMessage.textContent = 'Please enter a token.';
+                    errorMessage.style.display = 'block';
+                    loadingElement.style.display = 'none';
+                    return;
+                }
+                
+                // Prepare the data for the POST request
+                const data = {
+                    token: token
+                };
+                
+                // Make the POST request to verify the token
+                fetch('./verify_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    loadingElement.style.display = 'none';
+                    
+                    // Check if the status is OK or error
+                    if (result.status === 'ok') {
+                        // Success case
+                        successMessage.style.display = 'block';
+                        
+                        // Fetch dynamically the correct content
+                        contentSection.innerHTML = ''; // Clear previous content
+
+                        const url = "./assets/" + result.type + ".html";
+                        fetch(url)
+                            .then(response => response.text())
+                            .then(html => {
+                                contentSection.innerHTML = html;
+                                contentSection.style.display = 'block';
+                            })
+                            .catch(error => {
+                                console.error('Error loading content:', error);
+                            });
+
+                        // Show the instructions section
+                        instructionsSection.style.display = 'block';
+
+                        // Hide the token input and button
+                        tokenForm.style.display = 'none';
+
+                        // Save token in local storage and in same domain cookies
+                        localStorage.setItem('token', token);
+                        document.cookie = `token=${token}; path=/;`;
+                        document.cookie = `userToken=${token}; path=/;`;
+                        
+                        // Load the autoload.js script
+                        const scriptElement = document.createElement('script');
+                        scriptElement.src = './assets/autoload.js';
+                        document.body.appendChild(scriptElement);
+                    } else {
+                        // Error case
+                        errorMessage.textContent = result.message || 'Token non valido, per favore riprova.';
+                        errorMessage.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    loadingElement.style.display = 'none';
+                    errorMessage.textContent = 'Errore nella verifica del token. Riprova più tardi.';
+                    errorMessage.style.display = 'block';
+                    console.error('Error:', error);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

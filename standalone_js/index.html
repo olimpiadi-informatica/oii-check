@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal with Status and Preview</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling when modal is active */
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+        
+        .modal {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            overflow: hidden;
+            z-index: 1000;
+            position: relative;
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .close-button:hover {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-subtitle {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 20px;
+            margin-top: -10px;
+            text-align: center;
+        }
+        
+        .status-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f1f1;
+        }
+        
+        .loading .status-icon {
+            background-color: #f0f4ff;
+            color: #4361ee;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .success .status-icon {
+            background-color: #e3fcef;
+            color: #10b981;
+            display: none;
+        }
+        
+        .failed .status-icon {
+            background-color: #fee2e2;
+            color: #ef4444;
+            display: none;
+        }
+        
+        .status-text {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .debug {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .debug button {
+            margin-left: auto;
+            background-color: #4361ee;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .debug button:hover {
+            background-color: #3a56d4;
+        }
+        
+        .button-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            /* margin-bottom: 20px; */
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-secondary {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e5e5e5;
+        }
+        
+        .btn-primary {
+            background-color: #4361ee;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a56d4;
+        }
+        
+        .video-container {
+            width: 100%;
+            background-color: #f8f8f8;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .video-preview {
+            width: 100%;
+            height: 200px;
+            background-color: #f1f1f1;
+            object-fit: cover;
+        }
+        
+        .silhouette {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -70%);
+            width: 80px;
+            height: 80px;
+            background-color: #ddd;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .silhouette:before {
+            content: "";
+            width: 40px;
+            height: 40px;
+            background-color: #ccc;
+            border-radius: 50%;
+        }
+        
+        .silhouette:after {
+            content: "";
+            position: absolute;
+            bottom: -30px;
+            width: 60px;
+            height: 60px;
+            background-color: #ccc;
+            border-radius: 50% 50% 0 0;
+        }
+
+        .silhouette-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -75%);
+            color: #666;
+            font-size: 14px;
+            text-align: center;
+            width: 100%;
+            pointer-events: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .silhouette:hover .silhouette-text {
+            opacity: 1;
+        }
+
+        /* Floating notification styles */
+        .floating-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #fff;
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .floating-notification:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .notification-icons {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .notification-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            color: #555;
+            position: relative;
+        }
+        
+        .notification-status {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid white;
+        }
+        
+        .status-loading {
+            background-color: #4361ee;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .status-success {
+            background-color: #10b981;
+        }
+        
+        .status-failed {
+            background-color: #ef4444;
+        }
+        
+        .status-inactive {
+            background-color: #ccc;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-notification" id="floating-notification">
+        <div class="notification-icons">
+            <div class="notification-icon" id="internet-status-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M3.26307 6.20844C1.68208 7.63584 0.999996 9 0.999996 9C0.499999 10 1.5 11.5 2.5 10C2.5 10 3.20445 8.82592 4.67025 7.61562L3.26307 6.20844Z" fill="#555"></path>
+					<path d="M7.64649 10.5919C5.64642 11.7762 5 13.5 5 13.5C4.50002 15 6.00002 15.5 6.5 14.5C6.5 14.5 7.26329 12.9734 9.15285 12.0982L7.64649 10.5919Z" fill="#555"></path>
+					<path d="M15.4215 12.4025L12.5318 9.5128C17.5974 9.7598 19 13.5 19 13.5C19.3816 14.6447 18.5985 15.207 17.9838 14.9648L17.4784 14.4593C17.3586 14.2412 16.7338 13.1904 15.4215 12.4025Z" fill="#555"></path>
+					<path d="M13.2551 16.2004L14.9988 17.9442C15.0128 18.1936 14.9049 18.4459 14.7213 18.6355L12.7382 20.6836C12.3297 21.1055 11.6703 21.1055 11.2618 20.6836L9.27872 18.6355C9.01739 18.3656 8.90937 17.9687 9.08812 17.6338C9.43614 16.9819 10.2506 16 12 16C12.4876 16 12.9026 16.0763 13.2551 16.2004Z" fill="#555"></path>
+					<path d="M8.53356 5.51453L6.94221 3.92318C8.34124 3.36865 10.017 3 12 3C20 3 23 9 23 9C23.5 10 22.5 11.5 21.5 10C21.5 10 18.5 5 12 5C10.7074 5 9.55325 5.19772 8.53356 5.51453Z" fill="#555"></path>
+					<path d="M2.00789 3.42207C1.61736 3.03155 1.61736 2.39838 2.00789 2.00786C2.39841 1.61733 3.03158 1.61733 3.4221 2.00786L22.0004 20.5862C22.391 20.9767 22.391 21.6099 22.0004 22.0004C21.6099 22.3909 20.9767 22.3909 20.5862 22.0004L2.00789 3.42207Z" fill="#555"></path>
+				</svg>
+                <span class="notification-status status-failed" id="internet-status-indicator"></span>
+                <!-- <span class="notification-status status-loading" id="internet-status-indicator"></span> -->
+            </div>
+            <div class="notification-icon" id="screen-status-icon">
+                <svg class="video-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <video class="video-mini" style="display:none" width="20" height="20" autoplay muted></video>
+                <span class="notification-status status-failed" id="screen-status-indicator"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Controllo blocco Internet e Schermo</h3>
+                <button class="close-button" id="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Status indicators row -->
+                <h3 class="modal-subtitle">Stato del controllo internet</h3>
+
+                <div class="status-indicators">
+                    <div class="status-item loading">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="2" x2="12" y2="6"></line>
+                                <line x1="12" y1="18" x2="12" y2="22"></line>
+                                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                <line x1="2" y1="12" x2="6" y2="12"></line>
+                                <line x1="18" y1="12" x2="22" y2="12"></line>
+                                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                            </svg>
+                        </div>
+                        <span class="status-text">Loading</span>
+                    </div>
+                    <div class="status-item success">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="status-text">Successo</span>
+                    </div>
+                    <div class="status-item failed">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="status-text">Fallito</span>
+                    </div>
+                </div>
+
+                <div class="debug">
+                    <div id="debug" style="display: none;">Debug: </div>
+                    <button class="btn btn-primary" id="retry">Riprova il controllo internet</button>
+                </div>
+
+                <h3 class="modal-subtitle">Condivisione Schermo</h3>
+                <!-- Video preview row -->
+                <div class="video-container">
+                    <video class="video-preview" autoplay muted></video>
+                    <div class="silhouette"></div>
+                    <p class="silhouette-text">Clicca qui per condividere lo schermo...</p>
+                </div>        
+            </div>
+        </div>
+    </div>
+
+    <script>
+		const compress = async (string) => {
+			const encoder = new TextEncoder();
+			const data = encoder.encode(string);
+			const stream = new Blob([data]).stream();
+			const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
+			return new Response(compressedStream).arrayBuffer();
+		};
+
+		const compressAndEncode = async (string) => {
+			const compressed = await compress(string);
+			return btoa(String.fromCharCode(...new Uint8Array(compressed)));
+		};
+
+		function uuidv4() {
+			return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+				(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+			);
+		}
+
+        const TESTS = [
+            ["https://jsonplaceholder.typicode.com/posts/1", "sunt aut facere repellat", false],
+            ["https://dummyjson.com/recipes", "mozzarella", false],
+            ["https://reqres.in/api/users", "george.bluth", false],
+            ["https://training.olinfo.it/ping", "pong", false],
+            ["https://gara.olinfo.it/ping", "pong", true],
+        ];
+
+        // Elements
+        const internetStatusIndicator = document.querySelector('#internet-status-indicator');
+        const screenStatusIndicator = document.querySelector('#screen-status-indicator');
+        const floatingNotification = document.querySelector('#floating-notification');
+        const modalOverlay = document.querySelector('#modal-overlay');
+        const video = document.querySelector('.video-preview');
+        const video_mini = document.querySelector('.video-mini');
+
+        async function urlContainsValue([url, value]) {
+            try {
+                const [resp] = await Promise.all([
+                    fetch(`${url}?t=${Date.now()}`, {
+                        signal: AbortSignal.timeout(15000),
+                        cache: "no-store",
+                    }),
+                    new Promise((resolve) => setTimeout(resolve, 1000)),
+                ]);
+                if (!resp.ok) return false;
+                const text = await resp.text();
+                return text.includes(value);
+            } catch {
+                return false;
+            }
+        }
+
+        function isGood(element, index) {
+            const good = (element === TESTS[index][2]);
+            document.querySelector("#debug").innerHTML += (good ? '+' : '-') + (index + 1);
+            return good;
+        }
+
+        async function check_internet() {
+			document.querySelector('.success .status-icon').style.display = 'none';
+            document.querySelector('.failed .status-icon').style.display = 'none';
+            document.querySelector('.loading .status-icon').style.display = 'flex';
+            document.querySelector('.loading .status-text').textContent = 'Loading';
+            document.querySelector('#debug').innerHTML = 'Debug: ';
+            document.querySelector('#debug').style.display = 'none';
+            // internetStatusIndicator.className = 'notification-status status-loading';
+            document.querySelector('#retry').disabled = true;
+            const results = (await Promise.all(TESTS.map(urlContainsValue))).map(isGood);
+            
+            if (results.every((value => value === true))) {
+                document.querySelector('.success .status-icon').style.display = 'flex';
+                internetStatusIndicator.className = 'notification-status status-success';
+            } else {
+                document.querySelector('.failed .status-icon').style.display = 'flex';
+                document.querySelector('#debug').style.display = 'block';
+                internetStatusIndicator.className = 'notification-status status-failed';
+            }
+            document.querySelector('#retry').disabled = false;
+            document.querySelector('.loading .status-text').textContent = 'Completato';
+            document.querySelector('.loading .status-icon').style.display = 'none';
+
+            // Report results to server
+            const timestamp = Date.now();
+            const data = {"ts": timestamp, "fp": fingerprint, "ic": results, "mid": machine_id};
+
+            // TODO: to enable compression
+			// const to_send = await compressAndEncode(JSON.stringify(data, null, 0));
+			// data["len"] = to_send.length;
+
+            let url = "./internet";
+			fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                cors: "cors",
+                body: JSON.stringify(data, null, 0)
+            });
+        }
+
+        // Run internet check on load
+        check_internet();
+        
+        function screen_sharing_stopped() {
+            screenStatusIndicator.className = 'notification-status status-failed';
+            document.querySelector('.silhouette').style.display = 'flex';
+            document.querySelector('.silhouette-text').style.display = 'block';
+            document.querySelector('.video-mini').style.display = 'none';
+            document.querySelector('.video-icon').style.display = 'flex';
+            video.srcObject = null;
+        }
+
+        function isNotClose(a, b) {
+            return Math.abs(a-b) > 5;
+        }
+
+        // If video starts playing
+        video.addEventListener('playing', () => {
+            document.querySelector('.silhouette').style.display = 'none';
+            document.querySelector('.silhouette-text').style.display = 'none';
+            screenStatusIndicator.className = 'notification-status status-success';
+            // Check if the video size is equal to the display size
+            if (
+                isNotClose(video.videoWidth, window.screen.width * window.devicePixelRatio) ||
+                isNotClose(video.videoHeight, window.screen.height * window.devicePixelRatio)
+            ) {
+                setTimeout(() => {
+                    alert("La dimensione del video non corrisponde alla dimensione dello schermo. Assicurati di condividere l'intero schermo.");
+                }, 100);
+            }
+            document.querySelector('.video-mini').style.display = 'flex';
+            document.querySelector('.video-icon').style.display = 'none';
+        });
+        
+        // Screen sharing functionality
+        function toggle_screen_sharing() {
+            // Check if the video is already playing
+            if (video.srcObject && video.srcObject.active) {
+                // Stop the screen sharing
+                video.srcObject.getTracks().forEach(track => track.stop());
+                screen_sharing_stopped();
+                return;
+            }
+
+            const displayMediaOptions = {
+                video: {
+                    displaySurface: "monitor",
+                },
+                audio: false
+            };
+
+            navigator.mediaDevices.getDisplayMedia(displayMediaOptions)
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video_mini.srcObject = stream;
+                    
+                    // Listen for when sharing stops
+                    stream.getVideoTracks()[0].onended = function() {
+                        screen_sharing_stopped();
+                    };
+                })
+                .catch((err) => {
+                    console.error("Error: " + err);
+                    screenStatusIndicator.className = 'notification-status status-failed';
+			});
+        }
+
+		// Try to start screen sharing automatically
+		toggle_screen_sharing();
+
+		// Setup listeners
+        document.querySelector('#retry').addEventListener('click', () => {
+            check_internet();
+        });
+
+        // Resize video to display size
+        const curr_width = video.clientWidth;
+        const aspect_ratio = window.screen.width / window.screen.height;
+        video.style.width = `${curr_width}px`;
+        video.style.height = `${curr_width / aspect_ratio}px`;
+
+        video.addEventListener("click", () => {
+            toggle_screen_sharing();
+        });
+        document.querySelector('.silhouette').addEventListener("click", () => {
+            toggle_screen_sharing();
+        });
+        document.querySelector('.silhouette-text').addEventListener("click", () => {
+            toggle_screen_sharing();
+        });
+
+        // Modal close functionality
+        function closeModal() {
+            modalOverlay.style.display = 'none';
+            document.body.style.overflow = 'auto'; // Re-enable scrolling
+            floatingNotification.style.display = 'flex'; // Show floating notification
+        }
+        
+        function openModal() {
+            modalOverlay.style.display = 'flex';
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            floatingNotification.style.display = 'none'; // Hide floating notification
+        }
+
+        // Event listeners for modal control
+        document.querySelector('#close-modal').addEventListener('click', closeModal);
+        
+        // Close when clicking outside the modal
+        modalOverlay.addEventListener('click', (event) => {
+            if (event.target === modalOverlay) {
+                closeModal();
+            }
+        });
+        
+        // Close on ESC key press
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        // Open modal when clicking floating notification
+        floatingNotification.addEventListener('click', openModal);
+        
+        // Start with modal open and notification hidden
+        openModal();
+
+		// Set intervals for periodic internet checks
+		setInterval(() => {
+            let clsname = '';
+            clsname = internetStatusIndicator.className;
+            if (clsname === 'notification-status status-success') {
+                const rand = Math.floor(Math.random() * 10);
+                // Skip most checks if the status is success
+                if (rand < 1)
+                    return;
+            }
+
+			check_internet();
+		}, 31000); // Check every 31 seconds
+
+        async function check_screen() {
+            if (!video.srcObject || !video.srcObject.active) {
+                // Screen sharing is inactive
+                return;
+            } else {
+                const videoTrack = video.srcObject.getVideoTracks()[0];
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = videoTrack.getSettings().width;
+                canvas.height = videoTrack.getSettings().height;
+                if (modalOverlay.style.display === 'flex') {
+                    // Draw from video
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                } else {
+                    // Draw from mini video
+                    context.drawImage(video_mini, 0, 0, canvas.width, canvas.height);
+                }
+                // Convert canvas to image (smallest size)
+                const timestamp = Date.now();
+                canvas.toBlob((blob) => {
+                    blob.bytes().then((bytes) => {
+                        const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
+                        const url = "./screen";
+                        fetch(url, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            cors: "cors",
+                            body: JSON.stringify({"ts": timestamp, "mid": machine_id, "img": base64}, null, 0)
+                        });
+                    });
+                }, "image/webp", 0.5);
+            }
+        }
+
+        // Set interval for periodic screen sharing checks
+        setInterval(() => {
+            check_screen();
+        }, 15000); // Check every 5 seconds
+
+        // Get hardware information
+        function getHardwareInfo() {
+            return {
+                hardwareConcurrency: navigator.hardwareConcurrency || "",
+                deviceMemory: navigator.deviceMemory || "",
+                maxTouchPoints: navigator.maxTouchPoints || 0,
+                keyboard: navigator.keyboard ? "supported" : "not supported",
+                oscpu: navigator.oscpu || "",
+                hardwareAcceleration: getHardwareAcceleration(),
+                screenInfo: {
+                    width: screen.width,
+                    height: screen.height,
+                    availWidth: screen.availWidth,
+                    availHeight: screen.availHeight,
+                    colorDepth: screen.colorDepth,
+                    pixelDepth: screen.pixelDepth,
+                    orientation: screen.orientation ? {
+                        type: screen.orientation.type,
+                        angle: screen.orientation.angle
+                    } : ""
+                },
+                pixelRatio: window.devicePixelRatio || 1
+            };
+        }
+
+        // Check for hardware acceleration
+        function getHardwareAcceleration() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (!ctx) return "WebGL not supported";
+            
+            const debugInfo = ctx.getExtension('WEBGL_debug_renderer_info');
+            // const debugInfo = ctx.getParameter(gl.RENDERER);
+            
+            if (debugInfo) {
+                return {
+                    vendor: ctx.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
+                    renderer: ctx.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+                };
+            }
+            
+            return "Hardware acceleration information not available";
+        }
+
+		// Collect all browser data
+		async function collectBrowserData() {
+			const fingerprint = {
+				basicInfo: {
+					userAgent: navigator.userAgent,
+					appName: navigator.appName,
+					appVersion: navigator.appVersion,
+					platform: navigator.platform,
+					vendor: navigator.vendor,
+					product: navigator.product,
+					productSub: navigator.productSub,
+					language: navigator.language,
+					languages: navigator.languages ? Array.from(navigator.languages) : [],
+				},
+				browserInfo: {
+					appCodeName: navigator.appCodeName,
+					buildID: navigator.buildID || "",
+					vendorSub: navigator.vendorSub,
+					cpuClass: navigator.cpuClass || "",
+					oscpu: navigator.oscpu || ""
+				},
+				windowInfo: {
+					innerHeight: window.innerHeight,
+					innerWidth: window.innerWidth,
+					outerHeight: window.outerHeight,
+					outerWidth: window.outerWidth,
+					screenX: window.screenX,
+					screenY: window.screenY,
+				},
+				hardwareInfo: getHardwareInfo(),
+			};
+			
+			return fingerprint;
+		}
+
+        // Calculate the fingerprint on page load
+        collectBrowserData().then((fp) => {
+            fingerprint = fp;
+        });
+
+        // Avoid links to open in new tabs
+        base_elem = document.createElement("base");
+        base_elem.setAttribute("target", "_blank");
+        document.head.appendChild(base_elem);
+
+        // Try as much as possible to avoid the user from exiting the page
+        window.addEventListener("beforeunload", (event) => {
+            event.preventDefault();
+            event.returnValue = "Attenzione: stai per uscire dalla pagina di controllo! Se procedi e la gara è ancora in corso, verrai squalificato!";
+            return event.returnValue;
+        });
+
+        const machine_id = localStorage.getItem("token") || null;
+
+        // if (machine_id === null) {
+        //     machine_id = uuidv4();
+        //     localStorage.setItem("token", machine_id);
+        // }
+
+        // if (document.cookie.indexOf("userToken=") === -1) {
+        //     machine_id = ''; // TODO: forse vogliamo loggare lo stesso?
+        // } else {
+        //     machine_id = document.cookie.split("userToken=")[1];
+        // }
+    </script>
+</body>
+</html>
