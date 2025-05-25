@@ -590,7 +590,7 @@
         }
 
 		// Try to start screen sharing automatically
-		toggle_screen_sharing();
+        toggle_screen_sharing();
 
 		// Setup listeners
         document.querySelector('#retry').addEventListener('click', () => {
@@ -683,23 +683,29 @@
                 // Convert canvas to image (smallest size)
                 const timestamp = Date.now();
                 canvas.toBlob((blob) => {
-                    blob.arrayBuffer().finally(() => {
-                        // Convert blob to ArrayBuffer
-                        return blob.arrayBuffer();
-                    }).then((bytes) => {
-                        const base64 = btoa(String.fromCharCode(...new Uint8Array(bytes)));
-                        const url = "./screen";
-                        fetch(url, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Accept": "application/json"
-                            },
-                            cors: "cors",
-                            body: JSON.stringify({"ts": timestamp, "mid": machine_id, "img": base64}, null, 0)
-                        });
+                    blob.arrayBuffer().then((bytes) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64 = reader.result.split(',')[1]; // Get only the base64 part
+                            const url = "./screen";
+                            fetch(url, {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Accept": "application/json"
+                                },
+                                cors: "cors",
+                                body: JSON.stringify({
+                                    ts: timestamp,
+                                    mid: machine_id,
+                                    img: base64
+                                }, null, 0)
+                            });
+                        };
+                        reader.readAsDataURL(blob); // Automatically encodes to base64
                     });
                 }, "image/webp", 0.5);
+
             }
         }
 
