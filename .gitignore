@@ -1,4 +1,5 @@
 backend/data
+backend/__pycache__
 backend/assets/autoload.js
 dist
 test

@@ -524,7 +524,7 @@
 
         // Run internet check on load
         check_internet();
-        
+
         function screen_sharing_stopped() {
             screenStatusIndicator.className = 'notification-status status-failed';
             document.querySelector('.silhouette').style.display = 'flex';
@@ -544,9 +544,11 @@
             document.querySelector('.silhouette-text').style.display = 'none';
             screenStatusIndicator.className = 'notification-status status-success';
             // Check if the video size is equal to the display size
+            var isSafari = window.safari !== undefined;
             if (
-                isNotClose(video.videoWidth, window.screen.width * window.devicePixelRatio) ||
-                isNotClose(video.videoHeight, window.screen.height * window.devicePixelRatio)
+                !isSafari &&
+                (isNotClose(video.videoWidth, window.screen.width * window.devicePixelRatio) ||
+                isNotClose(video.videoHeight, window.screen.height * window.devicePixelRatio))
             ) {
                 setTimeout(() => {
                     alert("La dimensione del video non corrisponde alla dimensione dello schermo. Assicurati di condividere l'intero schermo.");
