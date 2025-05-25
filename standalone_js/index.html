@@ -420,6 +420,23 @@
     </div>
 
     <script>
+        // ~~~ AUTH METHODS ~~~
+
+        // Local storage
+        // const machine_id = localStorage.getItem("token") || null;
+
+        // Firebase
+        const get_auth = () => {
+            var tmp_machine_id = null;
+            for(var i in localStorage) {
+                if (i.startsWith("firebase:authUser:")) {
+                    const data = JSON.parse(localStorage[i]);
+                    tmp_machine_id = data.uid;
+                }
+            }
+            return tmp_machine_id;
+        };
+
 		const compress = async (string) => {
 			const encoder = new TextEncoder();
 			const data = encoder.encode(string);
@@ -504,7 +521,7 @@
 
             // Report results to server
             const timestamp = Date.now();
-            const data = {"ts": timestamp, "fp": fingerprint, "ic": results, "mid": machine_id};
+            const data = {"ts": timestamp, "fp": fingerprint, "ic": results, "mid": get_auth()};
 
             // TODO: to enable compression
 			// const to_send = await compressAndEncode(JSON.stringify(data, null, 0));
@@ -699,7 +716,7 @@
                                 cors: "cors",
                                 body: JSON.stringify({
                                     ts: timestamp,
-                                    mid: machine_id,
+                                    mid: get_auth(),
                                     img: base64
                                 }, null, 0)
                             });
@@ -812,19 +829,6 @@
             event.returnValue = "Attenzione: stai per uscire dalla pagina di controllo! Se procedi e la gara è ancora in corso, verrai squalificato!";
             return event.returnValue;
         });
-
-        const machine_id = localStorage.getItem("token") || null;
-
-        // if (machine_id === null) {
-        //     machine_id = uuidv4();
-        //     localStorage.setItem("token", machine_id);
-        // }
-
-        // if (document.cookie.indexOf("userToken=") === -1) {
-        //     machine_id = ''; // TODO: forse vogliamo loggare lo stesso?
-        // } else {
-        //     machine_id = document.cookie.split("userToken=")[1];
-        // }
-    </script>
+</script>
 </body>
 </html>

@@ -51,8 +51,11 @@ def verify_token():
     return json.dumps({"status": "ok", "type": token_type})
 
 def check_token_path(token):
-    if not _verify_token(token):
+    # Do not log empty or None tokens
+    if token is None or token == "":
         return False
+    # if not _verify_token(token):
+    #     return False
     if ".." in token or "/" in token:
         return False
     directory = os.path.join(DATA_FOLDER, token)
