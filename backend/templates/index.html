@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pagina di Proctoring OII</title>
+    <title>Pagina di Proctoring OIS</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,23 +82,23 @@
 </head>
 <body>
     <div class="container">
-        <h1>Verifica il tuo token</h1>
+        <h1>Login</h1>
         
         <div class="token-form">
-            <input type="text" id="token-input" placeholder="Enter your token here">
-            <button id="verify-button">Verifica Token</button>
+            <input type="text" id="token-input" placeholder="Enter your token here" hidden>
+            <button id="verify-button">Verifica Login</button>
         </div>
         
         <div class="error-message" id="error-message">
-            Token non valido, per favore riprova.
+            Login invalido, assicurati di aver effettuato il login sulla piattaforma di gara e riprova.
         </div>
         
         <div class="success-message" id="success-message">
-            Token verificato con successo!
+            Login effettuato con successo!
         </div>
         
         <div class="loading" id="loading">
-            <p>Verifica token in corso...</p>
+            <p>Verifica del login in corso...</p>
         </div>
 
         <div class="content-section" id="instructions">
@@ -139,6 +139,16 @@
                     verifyToken();
                 }
             });
+
+            function get_username() {
+                const cookie = document.cookie
+                    .split("; ")
+                    .find((row) => row.split("=")[0].endsWith("_login"))
+                    ?.split("=")[1];
+                if (!cookie) return;
+                const username = JSON.parse(atob(cookie.split("|")[4].split(":")[1]))[0];
+                return username;
+            }
             
             function verifyToken() {
                 // Hide any previous messages
@@ -149,10 +159,10 @@
                 // Show loading indicator
                 loadingElement.style.display = 'block';
                 
-                const token = tokenInput.value.trim();
+                const username = get_username();
                 
-                if (!token) {
-                    errorMessage.textContent = 'Please enter a token.';
+                if (!username) {
+                    errorMessage.textContent = 'Login invalido, assicurati di aver effettuato il login sulla piattaforma di gara e riprova.';
                     errorMessage.style.display = 'block';
                     loadingElement.style.display = 'none';
                     return;
@@ -160,7 +170,7 @@
                 
                 // Prepare the data for the POST request
                 const data = {
-                    token: token
+                    token: username
                 };
                 
                 // Make the POST request to verify the token
@@ -188,16 +198,16 @@
                         // Fetch dynamically the correct content
                         contentSection.innerHTML = ''; // Clear previous content
 
-                        const url = "./assets/" + result.type + ".html";
-                        fetch(url)
-                            .then(response => response.text())
-                            .then(html => {
-                                contentSection.innerHTML = html;
-                                contentSection.style.display = 'block';
-                            })
-                            .catch(error => {
-                                console.error('Error loading content:', error);
-                            });
+                        //const url = "./assets/" + result.type + ".html";
+                        //fetch(url)
+                        //    .then(response => response.text())
+                        //    .then(html => {
+                        //        contentSection.innerHTML = html;
+                        //        //contentSection.style.display = 'block';
+                        //    })
+                        //    .catch(error => {
+                        //        console.error('Error loading content:', error);
+                        //    });
 
                         // Show the instructions section
                         instructionsSection.style.display = 'block';
@@ -206,9 +216,9 @@
                         tokenForm.style.display = 'none';
 
                         // Save token in local storage and in same domain cookies
-                        localStorage.setItem('token', token);
-                        document.cookie = `token=${token}; path=/;`;
-                        document.cookie = `userToken=${token}; path=/;`;
+                        //localStorage.setItem('token', token);
+                        //document.cookie = `token=${token}; path=/;`;
+                        //document.cookie = `userToken=${token}; path=/;`;
                         
                         // Load the autoload.js script
                         const scriptElement = document.createElement('script');
@@ -216,17 +226,19 @@
                         document.body.appendChild(scriptElement);
                     } else {
                         // Error case
-                        errorMessage.textContent = result.message || 'Token non valido, per favore riprova.';
+                        errorMessage.textContent = result.message || 'Login non valido, per favore riprova.';
                         errorMessage.style.display = 'block';
                     }
                 })
                 .catch(error => {
                     loadingElement.style.display = 'none';
-                    errorMessage.textContent = 'Errore nella verifica del token. Riprova più tardi.';
+                    errorMessage.textContent = 'Errore nella verifica del login. Riprova più tardi.';
                     errorMessage.style.display = 'block';
                     console.error('Error:', error);
                 });
             }
+
+            verifyToken();
         });
     </script>
 </body>

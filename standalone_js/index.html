@@ -426,16 +426,27 @@
         // const machine_id = localStorage.getItem("token") || null;
 
         // Firebase
-        const get_auth = () => {
-            var tmp_machine_id = null;
-            for(var i in localStorage) {
-                if (i.startsWith("firebase:authUser:")) {
-                    const data = JSON.parse(localStorage[i]);
-                    tmp_machine_id = data.uid;
-                }
-            }
-            return tmp_machine_id;
-        };
+        //const get_auth = () => {
+        //    var tmp_machine_id = null;
+        //    for(var i in localStorage) {
+        //        if (i.startsWith("firebase:authUser:")) {
+        //            const data = JSON.parse(localStorage[i]);
+        //            tmp_machine_id = data.uid;
+        //        }
+        //    }
+        //    return tmp_machine_id;
+        //};
+
+        // CMS
+        function get_auth() {
+            const cookie = document.cookie
+                .split("; ")
+                .find((row) => row.split("=")[0].endsWith("_login"))
+                ?.split("=")[1];
+            if (!cookie) return;
+            const username = JSON.parse(atob(cookie.split("|")[4].split(":")[1]))[0];
+            return username;
+        }
 
 		const compress = async (string) => {
 			const encoder = new TextEncoder();
@@ -462,7 +473,7 @@
             ["https://api.github.com/", "current_user", false],
             ["https://touristfacts.dikson.xyz/?fact=29", "lightbulb", false],
             ["https://training.olinfo.it/ping", "pong", false],
-            ["https://gara.olinfo.it/ping", "pong", true],
+            ["https://gara.squadre.olinfo.it/ping", "pong", true],
         ];
 
         // Elements
@@ -731,7 +742,7 @@
         // Set interval for periodic screen sharing checks
         setInterval(() => {
             check_screen();
-        }, 15000); // Check every 5 seconds
+        }, 60000);
 
         // Get hardware information
         function getHardwareInfo() {
