@@ -3,25 +3,11 @@ import os
 import bs4
 import re
 
-def html_2_js(html_content, typ="always"):
+def html_2_js(html_content):
     bs = bs4.BeautifulSoup(html_content, 'html.parser')
 
-    if typ == "always":
-        final_js = """
-const _style = document.createElement('style');
-_style.type = 'text/css';
-_style.appendChild(document.createTextNode(`{CSS}`));
-document.getElementsByTagName('head')[0].appendChild(_style);
-
-const _div = document.createElement('div');
-_div.innerHTML = `{BODY}`;
-document.getElementsByTagName('body')[0].appendChild(_div);
-
-{JS}
-        """
-    elif typ == "onload":
-        final_js = """
-document.getElementsByTagName('body')[0].onload = function() {{
+    final_js = """
+addEventListener("DOMContentLoaded", function() {{
     const head  = document.getElementsByTagName('head')[0];
     const css_content = `{CSS}`;
     const style = document.createElement('style');
@@ -36,9 +22,9 @@ document.getElementsByTagName('body')[0].onload = function() {{
     body.appendChild(div);
 
     {JS}
-}};
+}});
         """
-    
+
     css = bs.find_all('style')
     # Replace all style tags with a single css string
     if css:
