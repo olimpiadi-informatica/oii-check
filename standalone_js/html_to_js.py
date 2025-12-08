@@ -1,7 +1,8 @@
 import sys
 import os
-import bs4
 import re
+
+import bs4
 
 def html_2_js(html_content):
     bs = bs4.BeautifulSoup(html_content, 'html.parser')

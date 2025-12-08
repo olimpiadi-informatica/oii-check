@@ -1,14 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OIS</title>
-    <link rel="icon" href="/cms/favicon.ico" />
+    <title>Round2 - Olimpiadi di Informatica a Squadre</title>
+    <link rel="icon" href="/cms/static/favicon.ico" />
     <script src="assets/autoload.js"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
             margin: 0;
             width: 100vw;
             height: 100vh;
@@ -26,8 +25,15 @@
             padding: 0;
         }
     </style>
+    <script>
+        addEventListener("DOMContentLoaded", function() {
+            const content = document.getElementById("content");
+            const debutant = location.pathname.includes("esordienti");
+            content.src = debutant ? "/cms/round2-debutant" : "/cms/round2";
+        });
+    </script>
 </head>
 <body>
-    <iframe src="/cms/"></iframe>
+    <iframe id="content"></iframe>
 </body>
 </html>

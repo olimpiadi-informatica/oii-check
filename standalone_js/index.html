@@ -430,25 +430,6 @@
             return username;
         }
 
-		const compress = (string) => {
-			const encoder = new TextEncoder();
-			const data = encoder.encode(string);
-			const stream = new Blob([data]).stream();
-			const compressedStream = stream.pipeThrough(new CompressionStream('gzip'));
-			return new Response(compressedStream).arrayBuffer();
-		};
-
-		const compressAndEncode = (string) => {
-			const compressed = compress(string);
-			return btoa(String.fromCharCode(...new Uint8Array(compressed)));
-		};
-
-		function uuidv4() {
-			return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-				(c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-			);
-		}
-
         const TESTS = [
             ["https://jsonplaceholder.typicode.com/posts/1", "sunt aut facere repellat", false],
             ["https://dummyjson.com/recipes", "mozzarella", false],
@@ -469,7 +450,7 @@
         async function urlContainsValue([url, value]) {
             try {
                 const [resp] = await Promise.all([
-                    fetch(`${url}`, {
+                    fetch(url, {
                         signal: AbortSignal.timeout(15000),
                         cache: "no-store",
                     }),
@@ -516,10 +497,6 @@
             const timestamp = Date.now();
             const data = {"ts": timestamp, "fp": fingerprint, "ic": results, "mid": get_auth()};
 
-            // TODO: to enable compression
-			// const to_send = compressAndEncode(JSON.stringify(data, null, 0));
-			// data["len"] = to_send.length;
-
             let url = "./internet";
 			fetch(url, {
                 method: "POST",
@@ -553,21 +530,30 @@
             document.querySelector('.silhouette').style.display = 'none';
             document.querySelector('.silhouette-text').style.display = 'none';
             screenStatusIndicator.className = 'notification-status status-success';
-            // Check if the video size is equal to the display size
-            var isSafari = window.safari !== undefined;
-            if (
-                !isSafari &&
-                (isNotClose(video.videoWidth, window.screen.width * window.devicePixelRatio) ||
-                isNotClose(video.videoHeight, window.screen.height * window.devicePixelRatio))
-            ) {
-                setTimeout(() => {
-                    alert("La dimensione del video non corrisponde alla dimensione dello schermo. Assicurati di condividere l'intero schermo.");
-                }, 100);
-            }
             document.querySelector('.video-mini').style.display = 'flex';
             document.querySelector('.video-icon').style.display = 'none';
         });
-        
+
+        function check_stream(stream) {
+            const track = stream.getVideoTracks()[0];
+            console.log(track.getSettings());
+
+            let isFullSurface = track.getSettings().displaySurface === 'monitor';
+
+            if (track.getSettings().displaySurface === undefined) {
+                isFullSurface = window.screen.width <= track.getSettings().width &&
+                    window.screen.height <= track.getSettings().height;
+                //isFullSurface = !(isNotClose(video.videoWidth, window.screen.width * window.devicePixelRatio) ||
+                //    isNotClose(video.videoHeight, window.screen.height * window.devicePixelRatio));
+            }
+
+            if (!isFullSurface) {
+                setTimeout(() => {
+                    alert("Assicurati di condividere l'intero schermo.");
+                }, 100);
+            }
+        }
+
         // Screen sharing functionality
         function toggle_screen_sharing() {
             // Check if the video is already playing
@@ -587,6 +573,7 @@
 
             navigator.mediaDevices.getDisplayMedia(displayMediaOptions)
                 .then((stream) => {
+                    check_stream(stream);
                     video.srcObject = stream;
                     video_mini.srcObject = stream;
                     
@@ -598,13 +585,13 @@
                 .catch((err) => {
                     console.error("Error: " + err);
                     screenStatusIndicator.className = 'notification-status status-failed';
-			});
+                });
         }
 
-		// Try to start screen sharing automatically
+        // Try to start screen sharing automatically
         toggle_screen_sharing();
 
-		// Setup listeners
+        // Setup listeners
         document.querySelector('#retry').addEventListener('click', () => {
             check_internet();
         });
