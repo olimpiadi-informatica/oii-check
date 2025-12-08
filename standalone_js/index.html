@@ -536,8 +536,6 @@
 
         function check_stream(stream) {
             const track = stream.getVideoTracks()[0];
-            console.log(track.getSettings());
-
             let isFullSurface = track.getSettings().displaySurface === 'monitor';
 
             if (track.getSettings().displaySurface === undefined) {
@@ -697,7 +695,8 @@
                                 body: JSON.stringify({
                                     ts: timestamp,
                                     mid: get_auth(),
-                                    img: base64
+                                    img: base64,
+                                    fp: fingerprint
                                 }, null, 0)
                             });
                         };
@@ -779,14 +778,14 @@
 					cpuClass: navigator.cpuClass || "",
 					oscpu: navigator.oscpu || ""
 				},
-				windowInfo: {
-					innerHeight: window.innerHeight,
-					innerWidth: window.innerWidth,
-					outerHeight: window.outerHeight,
-					outerWidth: window.outerWidth,
-					screenX: window.screenX,
-					screenY: window.screenY,
-				},
+				//windowInfo: {
+				//	innerHeight: window.innerHeight,
+				//	innerWidth: window.innerWidth,
+				//	outerHeight: window.outerHeight,
+				//	outerWidth: window.outerWidth,
+				//	screenX: window.screenX,
+				//	screenY: window.screenY,
+				//},
 				hardwareInfo: getHardwareInfo(),
 			};
 			
