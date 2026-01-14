@@ -2,7 +2,7 @@ all: js assets
 
 js: standalone_js/index.html
 	@echo "Converting the HTML file to a JavaScript file..."
-	python standalone_js/html_to_js.py standalone_js/index.html > dist/autoload.js
+	python3 standalone_js/html_to_js.py standalone_js/index.html > dist/autoload.js
 
 assets: js
 	@echo "Overwriting dist/autoload.js with the new content..."
