@@ -1,0 +1,17 @@
+export const content = document.getElementById("content");
+export const internetStatusIndicator = document.querySelector("#internet-status-indicator");
+export const screenStatusIndicator = document.querySelector("#screen-status-indicator");
+export const floatingNotification = document.querySelector("#floating-notification");
+export const modalOverlay = document.querySelector("#modal-overlay");
+export const video = document.querySelector(".video-preview");
+export const videoMini = document.querySelector(".video-mini");
+export const retryButton = document.querySelector("#retry");
+export const debugElement = document.querySelector("#debug");
+export const silhouette = document.querySelector(".silhouette");
+export const silhouetteText = document.querySelector(".silhouette-text");
+export const closeModalButton = document.querySelector("#close-modal");
+export const successStatusIcon = document.querySelector(".success .status-icon");
+export const failedStatusIcon = document.querySelector(".failed .status-icon");
+export const loadingStatusIcon = document.querySelector(".loading .status-icon");
+export const loadingStatusText = document.querySelector(".loading .status-text");
+export const videoIcon = document.querySelector(".video-icon");

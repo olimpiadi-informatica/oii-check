@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Round2 - Olimpiadi di Informatica a Squadre</title>
+    <link rel="icon" href="/cms/static/favicon.ico">
+    <link rel="stylesheet" href="/static/css/index.css">
+    <script type="module" src="/static/js/main.js"></script>
+</head>
+<body>
+    <iframe id="content"></iframe>
+
+    <div class="floating-notification" id="floating-notification">
+        <div class="notification-icons">
+            <div class="notification-icon" id="internet-status-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3.26307 6.20844C1.68208 7.63584 0.999996 9 0.999996 9C0.499999 10 1.5 11.5 2.5 10C2.5 10 3.20445 8.82592 4.67025 7.61562L3.26307 6.20844Z" fill="#555"></path>
+                    <path d="M7.64649 10.5919C5.64642 11.7762 5 13.5 5 13.5C4.50002 15 6.00002 15.5 6.5 14.5C6.5 14.5 7.26329 12.9734 9.15285 12.0982L7.64649 10.5919Z" fill="#555"></path>
+                    <path d="M15.4215 12.4025L12.5318 9.5128C17.5974 9.7598 19 13.5 19 13.5C19.3816 14.6447 18.5985 15.207 17.9838 14.9648L17.4784 14.4593C17.3586 14.2412 16.7338 13.1904 15.4215 12.4025Z" fill="#555"></path>
+                    <path d="M13.2551 16.2004L14.9988 17.9442C15.0128 18.1936 14.9049 18.4459 14.7213 18.6355L12.7382 20.6836C12.3297 21.1055 11.6703 21.1055 11.2618 20.6836L9.27872 18.6355C9.01739 18.3656 8.90937 17.9687 9.08812 17.6338C9.43614 16.9819 10.2506 16 12 16C12.4876 16 12.9026 16.0763 13.2551 16.2004Z" fill="#555"></path>
+                    <path d="M8.53356 5.51453L6.94221 3.92318C8.34124 3.36865 10.017 3 12 3C20 3 23 9 23 9C23.5 10 22.5 11.5 21.5 10C21.5 10 18.5 5 12 5C10.7074 5 9.55325 5.19772 8.53356 5.51453Z" fill="#555"></path>
+                    <path d="M2.00789 3.42207C1.61736 3.03155 1.61736 2.39838 2.00789 2.00786C2.39841 1.61733 3.03158 1.61733 3.4221 2.00786L22.0004 20.5862C22.391 20.9767 22.391 21.6099 22.0004 22.0004C21.6099 22.3909 20.9767 22.3909 20.5862 22.0004L2.00789 3.42207Z" fill="#555"></path>
+                </svg>
+                <span class="notification-status status-failed" id="internet-status-indicator"></span>
+            </div>
+            <div class="notification-icon" id="screen-status-icon">
+                <svg class="video-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                </svg>
+                <video class="video-mini" width="20" height="20" autoplay muted></video>
+                <span class="notification-status status-failed" id="screen-status-indicator"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overlay" id="modal-overlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Controllo blocco Internet e Schermo</h3>
+                <button class="close-button" id="close-modal">×</button>
+            </div>
+            <div class="modal-body">
+                <h3 class="modal-subtitle">Stato del controllo internet</h3>
+
+                <div class="status-indicators">
+                    <div class="status-item loading">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="2" x2="12" y2="6"></line>
+                                <line x1="12" y1="18" x2="12" y2="22"></line>
+                                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                <line x1="2" y1="12" x2="6" y2="12"></line>
+                                <line x1="18" y1="12" x2="22" y2="12"></line>
+                                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                            </svg>
+                        </div>
+                        <span class="status-text">Loading</span>
+                    </div>
+                    <div class="status-item success">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="status-text">Successo</span>
+                    </div>
+                    <div class="status-item failed">
+                        <div class="status-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </div>
+                        <span class="status-text">Fallito</span>
+                    </div>
+                </div>
+
+                <div class="debug">
+                    <div id="debug" style="display: none;">Debug: </div>
+                    <button class="btn btn-primary" id="retry">Riprova il controllo internet</button>
+                </div>
+
+                <h3 class="modal-subtitle">Condivisione Schermo</h3>
+                <div class="video-container">
+                    <video class="video-preview" autoplay muted></video>
+                    <div class="silhouette"></div>
+                    <p class="silhouette-text">Clicca qui per condividere lo schermo...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

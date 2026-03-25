@@ -1,14 +1,13 @@
 from pathlib import Path
 from datetime import datetime
-import hashlib
 import base64
 import json
 import re
 import time
 
-from flask import Flask, render_template, request
+from flask import Flask, request
 
-app = Flask(__name__, static_folder='assets', static_url_path='/assets')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 DATA_FOLDER = Path("data")
 if not DATA_FOLDER.exists():
@@ -31,7 +30,7 @@ def check_token_path(token):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return app.send_static_file('index.html')
 
 @app.route('/internet', methods=['POST'])
 def internet():
@@ -60,10 +59,7 @@ def screen():
         return json_error
 
     fp = data['fp']
-    m = hashlib.sha1()
-    m.update(json.dumps(fp, sort_keys=True).encode('utf-8'))
-    sha1 = m.hexdigest()[:7]
-    d = DATA_FOLDER / token / sha1
+    d = DATA_FOLDER / token / fp
     d.mkdir(exist_ok=True)
 
     img = data['img']
