@@ -25,6 +25,10 @@ content.src = getContentSrc(location.pathname);
 
 const fingerprint = getClientId();
 
+function unixTimestampSeconds() {
+    return Date.now() / 1000;
+}
+
 function isGood(element, index) {
     const good = element === TESTS[index][2];
     appendDebugResult((good ? "+" : "-") + (index + 1));
@@ -36,12 +40,12 @@ async function checkInternet() {
     const results = (await Promise.all(TESTS.map(urlContainsValue))).map(isGood);
     setInternetResultState(results);
 
-    const timestamp = Date.now();
+    const timestamp = unixTimestampSeconds();
     postJson("./internet", {
-        ts: timestamp,
+        client_ts: timestamp,
         fp: fingerprint,
         ic: results,
-        mid: getAuth(),
+        token: getAuth(),
     });
 }
 
@@ -105,7 +109,7 @@ async function checkScreen() {
         context.drawImage(videoMini, 0, 0, canvas.width, canvas.height);
     }
 
-    const timestamp = Date.now();
+    const timestamp = unixTimestampSeconds();
     canvas.toBlob((blob) => {
         if (!blob) {
             return;
@@ -114,8 +118,8 @@ async function checkScreen() {
         reader.onloadend = () => {
             const base64 = reader.result.split(",")[1];
             postJson("./screen", {
-                ts: timestamp,
-                mid: getAuth(),
+                client_ts: timestamp,
+                token: getAuth(),
                 img: base64,
                 fp: fingerprint,
             });
