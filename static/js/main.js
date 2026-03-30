@@ -1,4 +1,3 @@
-import { getAuth } from "./auth.js";
 import { getClientId } from "./client-id.js";
 import { getContentSrc, TESTS } from "./config.js";
 import {
@@ -21,7 +20,7 @@ import {
     setupVideoSizing,
 } from "./ui.js";
 
-content.src = getContentSrc(location.pathname);
+content.src = getContentSrc();
 
 const fingerprint = getClientId();
 
@@ -45,7 +44,6 @@ async function checkInternet() {
         client_ts: timestamp,
         fp: fingerprint,
         ic: results,
-        token: getAuth(),
     });
 }
 
@@ -119,19 +117,12 @@ async function checkScreen() {
             const base64 = reader.result.split(",")[1];
             postJson("./screen", {
                 client_ts: timestamp,
-                token: getAuth(),
                 img: base64,
                 fp: fingerprint,
             });
         };
         reader.readAsDataURL(blob);
     }, "image/webp", 0.5);
-}
-
-function setupBaseTarget() {
-    const baseElem = document.createElement("base");
-    baseElem.setAttribute("target", "_blank");
-    document.head.appendChild(baseElem);
 }
 
 function setupBeforeUnload() {
@@ -170,7 +161,6 @@ video.addEventListener("playing", () => {
 setupModalHandlers();
 setupVideoSizing();
 setupShareTriggers(toggleScreenSharing);
-setupBaseTarget();
 setupBeforeUnload();
 openModal();
 checkInternet();

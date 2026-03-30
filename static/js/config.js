@@ -6,6 +6,6 @@ export const TESTS = [
     ["https://training.olinfo.it/ping", "pong", false],
 ];
 
-export function getContentSrc(pathname) {
-    return pathname.includes("esordienti") ? "/cms/round2-debutant" : "/cms/round2";
+export function getContentSrc() {
+    return "/terry/";
 }
