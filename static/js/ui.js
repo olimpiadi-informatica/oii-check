@@ -1,21 +1,21 @@
-import {
-    closeModalButton,
-    debugElement,
-    failedStatusIcon,
-    floatingNotification,
-    internetStatusIndicator,
-    loadingStatusIcon,
-    loadingStatusText,
-    modalOverlay,
-    retryButton,
-    screenStatusIndicator,
-    silhouette,
-    silhouetteText,
-    successStatusIcon,
-    video,
-    videoIcon,
-    videoMini,
-} from "./dom.js";
+export const content = document.getElementById("content");
+export const retryButton = document.querySelector("#retry");
+export const video = document.querySelector(".video-preview");
+export const videoMini = document.querySelector(".video-mini");
+export const modalOverlay = document.querySelector("#modal-overlay");
+
+const closeModalButton = document.querySelector("#close-modal");
+const debugElement = document.querySelector("#debug");
+const failedStatusIcon = document.querySelector(".failed .status-icon");
+const floatingNotification = document.querySelector("#floating-notification");
+const internetStatusIndicator = document.querySelector("#internet-status-indicator");
+const loadingStatusIcon = document.querySelector(".loading .status-icon");
+const loadingStatusText = document.querySelector(".loading .status-text");
+const screenStatusIndicator = document.querySelector("#screen-status-indicator");
+const silhouette = document.querySelector(".silhouette");
+const silhouetteText = document.querySelector(".silhouette-text");
+const successStatusIcon = document.querySelector(".success .status-icon");
+const videoIcon = document.querySelector(".video-icon");
 
 export function setInternetLoadingState() {
     successStatusIcon.style.display = "none";
@@ -28,6 +28,8 @@ export function setInternetLoadingState() {
 }
 
 export function setInternetResultState(results) {
+    debugElement.innerHTML += results.map((good, index) => (good ? "o" : "x") + index).join("-");
+
     if (results.every((value) => value === true)) {
         successStatusIcon.style.display = "flex";
         internetStatusIndicator.className = "notification-status status-success";
@@ -39,10 +41,6 @@ export function setInternetResultState(results) {
     retryButton.disabled = false;
     loadingStatusText.textContent = "Completato";
     loadingStatusIcon.style.display = "none";
-}
-
-export function appendDebugResult(text) {
-    debugElement.innerHTML += text;
 }
 
 export function setScreenStoppedState() {

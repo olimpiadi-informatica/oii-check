@@ -2,12 +2,12 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use axum::body::Bytes;
 use axum::extract::{FromRequestParts, Json, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::routing::post;
 use axum::{Router, serve};
-use base64::Engine;
 use chrono::Local;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -62,24 +62,44 @@ fn unix_timestamp_seconds() -> f64 {
         .as_secs_f64()
 }
 
-fn validate_fingerprint(fp: &str) -> Result<(), StatusCode> {
-    let bytes = fp.as_bytes();
+struct ClientTs(f64);
 
-    let is_hex_32 = bytes.len() == 32 && bytes.iter().all(u8::is_ascii_hexdigit);
-    let is_uuid = bytes.len() == 36
-        && bytes[8] == b'-'
-        && bytes[13] == b'-'
-        && bytes[18] == b'-'
-        && bytes[23] == b'-'
-        && bytes
-            .iter()
-            .enumerate()
-            .all(|(index, byte)| matches!(index, 8 | 13 | 18 | 23) || byte.is_ascii_hexdigit());
+impl<S> FromRequestParts<S> for ClientTs
+where
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
 
-    if is_hex_32 || is_uuid {
-        Ok(())
-    } else {
-        Err(StatusCode::BAD_REQUEST)
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let client_ts = parts
+            .headers
+            .get("X-OII-CLIENT-TS")
+            .and_then(|value| value.to_str().ok())
+            .and_then(|value| value.parse().ok())
+            .ok_or(StatusCode::BAD_REQUEST)?;
+        Ok(Self(client_ts))
+    }
+}
+
+struct Fingerprint(String);
+
+impl<S> FromRequestParts<S> for Fingerprint
+where
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let fp = parts
+            .headers
+            .get("X-OII-FP")
+            .and_then(|value| value.to_str().ok())
+            .ok_or(StatusCode::BAD_REQUEST)?;
+        let bytes = fp.as_bytes();
+        if bytes.len() != 32 || !bytes.iter().all(u8::is_ascii_hexdigit) {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        Ok(Self(fp.to_owned()))
     }
 }
 
@@ -103,8 +123,6 @@ where
 
 #[derive(Deserialize)]
 struct InternetPayload {
-    client_ts: f64,
-    fp: String,
     ic: Vec<bool>,
 }
 
@@ -116,19 +134,28 @@ struct InternetRecord {
     server_ts: f64,
 }
 
+#[derive(Serialize)]
+struct ScreenRecord {
+    client_ts: f64,
+    fp: String,
+    filename: String,
+    server_ts: f64,
+}
+
 async fn internet(
     State(state): State<AppState>,
     Auth(token): Auth,
+    ClientTs(client_ts): ClientTs,
+    Fingerprint(fp): Fingerprint,
     Json(data): Json<InternetPayload>,
 ) -> Result<(), StatusCode> {
-    validate_fingerprint(&data.fp)?;
     let token_dir = state.data_dir.join(&token);
     tokio::fs::create_dir_all(&token_dir)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let record = InternetRecord {
-        client_ts: data.client_ts,
-        fp: data.fp,
+        client_ts,
+        fp,
         ic: data.ic,
         server_ts: unix_timestamp_seconds(),
     };
@@ -136,7 +163,7 @@ async fn internet(
     let mut file = tokio::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open(token_dir.join("internet.json"))
+        .open(token_dir.join("logs.json"))
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let mut line = serde_json::to_vec(&record).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -148,35 +175,45 @@ async fn internet(
     Ok(())
 }
 
-#[derive(Deserialize)]
-struct ScreenPayload {
-    client_ts: f64,
-    img: String,
-    fp: String,
-}
-
 async fn screen(
     State(state): State<AppState>,
     Auth(token): Auth,
-    Json(data): Json<ScreenPayload>,
+    ClientTs(client_ts): ClientTs,
+    Fingerprint(fp): Fingerprint,
+    body: Bytes,
 ) -> Result<(), StatusCode> {
-    validate_fingerprint(&data.fp)?;
     let server_ts = unix_timestamp_seconds();
-    let fp_dir = state.data_dir.join(&token).join(&data.fp);
+    let token_dir = state.data_dir.join(&token);
+    let fp_dir = token_dir.join(&fp);
     tokio::fs::create_dir_all(&fp_dir)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let img = base64::engine::general_purpose::STANDARD
-        .decode(&data.img)
-        .map_err(|_| StatusCode::BAD_REQUEST)?;
     let filename = format!(
         "{}_{}_{}.webp",
-        data.client_ts,
+        client_ts,
         server_ts,
         Local::now().format("%Y-%m-%d %H:%M:%S"),
     );
-    tokio::fs::write(fp_dir.join(filename), img)
+    tokio::fs::write(fp_dir.join(&filename), body)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let record = ScreenRecord {
+        client_ts,
+        fp,
+        filename,
+        server_ts,
+    };
+    let mut file = tokio::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(token_dir.join("logs.json"))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut line = serde_json::to_vec(&record).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    line.push(b'\n');
+    file.write_all(&line)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

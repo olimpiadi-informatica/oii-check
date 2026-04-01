@@ -1,16 +1,19 @@
-import { getClientId } from "./client-id.js";
-import { getContentSrc, TESTS } from "./config.js";
+import {
+    CLIENT_ID_STORAGE_KEY,
+    getContentSrc,
+    INTERNET_CHECK_INTERVAL_MS,
+    INTERNET_CHECK_MIN_DURATION_MS,
+    INTERNET_CHECK_TIMEOUT_MS,
+    SCREEN_CAPTURE_MAX_HEIGHT,
+    SCREEN_CAPTURE_MAX_WIDTH,
+    SCREEN_CHECK_INTERVAL_MS,
+    TESTS,
+} from "./config.js";
 import {
     content,
-    internetStatusIndicator,
-    retryButton,
-    video,
-    videoMini,
-} from "./dom.js";
-import { postJson, urlContainsValue } from "./network.js";
-import {
-    appendDebugResult,
+    modalOverlay,
     openModal,
+    retryButton,
     setInternetLoadingState,
     setInternetResultState,
     setScreenPlayingState,
@@ -18,33 +21,115 @@ import {
     setupModalHandlers,
     setupShareTriggers,
     setupVideoSizing,
+    video,
+    videoMini,
 } from "./ui.js";
 
 content.src = getContentSrc();
 
+function isValidClientId(value) {
+    return /^[0-9a-f]{32}$/.test(value);
+}
+
+function generateClientId() {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function getClientId() {
+    const existingId = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+    if (existingId && isValidClientId(existingId)) {
+        return existingId;
+    }
+
+    const clientId = generateClientId();
+    localStorage.setItem(CLIENT_ID_STORAGE_KEY, clientId);
+    return clientId;
+}
+
 const fingerprint = getClientId();
+const pendingRequests = [];
+let isFlushingRequests = false;
 
 function unixTimestampSeconds() {
     return Date.now() / 1000;
 }
 
-function isGood(element, index) {
-    const good = element === TESTS[index][2];
-    appendDebugResult((good ? "+" : "-") + (index + 1));
-    return good;
+async function urlContainsValue([url, value]) {
+    try {
+        const [resp] = await Promise.all([
+            fetch(url, {
+                signal: AbortSignal.timeout(INTERNET_CHECK_TIMEOUT_MS),
+                cache: "no-store",
+            }),
+            new Promise((resolve) => setTimeout(resolve, INTERNET_CHECK_MIN_DURATION_MS)),
+        ]);
+        if (!resp.ok) return false;
+        const text = await resp.text();
+        return text.includes(value);
+    } catch {
+        return false;
+    }
+}
+
+async function flushPendingRequests() {
+    if (isFlushingRequests) {
+        return;
+    }
+
+    isFlushingRequests = true;
+    try {
+        while (pendingRequests.length > 0) {
+            const request = pendingRequests[0];
+            let response;
+            try {
+                response = await fetch(request.url, request.options);
+            } catch {
+                return;
+            }
+
+            if (!response.ok) {
+                return;
+            }
+
+            pendingRequests.shift();
+        }
+    } finally {
+        isFlushingRequests = false;
+    }
+}
+
+function postRequest(url, clientTs, fp, body, contentType) {
+    pendingRequests.push({
+        url,
+        options: {
+            method: "POST",
+            headers: {
+                "Content-Type": contentType,
+                "X-OII-CLIENT-TS": String(clientTs),
+                "X-OII-FP": fp,
+            },
+            cors: "cors",
+            body,
+        },
+    });
+    return flushPendingRequests();
 }
 
 async function checkInternet() {
+    const timestamp = unixTimestampSeconds();
+
     setInternetLoadingState();
-    const results = (await Promise.all(TESTS.map(urlContainsValue))).map(isGood);
+    const results = (await Promise.all(TESTS.map(urlContainsValue))).map((x) => !x);
     setInternetResultState(results);
 
-    const timestamp = unixTimestampSeconds();
-    postJson("./internet", {
-        client_ts: timestamp,
-        fp: fingerprint,
-        ic: results,
-    });
+    postRequest(
+        "./internet",
+        timestamp,
+        fingerprint,
+        JSON.stringify({ ic: results }),
+        "application/json",
+    );
 }
 
 function checkStream(stream) {
@@ -98,10 +183,17 @@ async function checkScreen() {
     const videoTrack = video.srcObject.getVideoTracks()[0];
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
-    canvas.width = videoTrack.getSettings().width;
-    canvas.height = videoTrack.getSettings().height;
+    const sourceWidth = videoTrack.getSettings().width;
+    const sourceHeight = videoTrack.getSettings().height;
+    const scale = Math.min(
+        1,
+        SCREEN_CAPTURE_MAX_WIDTH / sourceWidth,
+        SCREEN_CAPTURE_MAX_HEIGHT / sourceHeight,
+    );
+    canvas.width = Math.round(sourceWidth * scale);
+    canvas.height = Math.round(sourceHeight * scale);
 
-    if (document.querySelector("#modal-overlay").style.display === "flex") {
+    if (modalOverlay.style.display === "flex") {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
     } else {
         context.drawImage(videoMini, 0, 0, canvas.width, canvas.height);
@@ -112,16 +204,7 @@ async function checkScreen() {
         if (!blob) {
             return;
         }
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            const base64 = reader.result.split(",")[1];
-            postJson("./screen", {
-                client_ts: timestamp,
-                img: base64,
-                fp: fingerprint,
-            });
-        };
-        reader.readAsDataURL(blob);
+        postRequest("./screen", timestamp, fingerprint, blob, "image/webp");
     }, "image/webp", 0.5);
 }
 
@@ -134,20 +217,8 @@ function setupBeforeUnload() {
 }
 
 function setupIntervals() {
-    setInterval(() => {
-        if (internetStatusIndicator.className === "notification-status status-success") {
-            const rand = Math.floor(Math.random() * 10);
-            if (rand < 1) {
-                return;
-            }
-        }
-
-        checkInternet();
-    }, 31000);
-
-    setInterval(() => {
-        checkScreen();
-    }, 60000);
+    setInterval(checkInternet, INTERNET_CHECK_INTERVAL_MS);
+    setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
 }
 
 retryButton.addEventListener("click", () => {
