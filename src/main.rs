@@ -8,7 +8,8 @@ use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::routing::post;
 use axum::{Router, serve};
-use chrono::Local;
+use axum_extra::TypedHeader;
+use axum_extra::headers::ContentType;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
@@ -180,6 +181,7 @@ async fn screen(
     Auth(token): Auth,
     ClientTs(client_ts): ClientTs,
     Fingerprint(fp): Fingerprint,
+    TypedHeader(content_type): TypedHeader<ContentType>,
     body: Bytes,
 ) -> Result<(), StatusCode> {
     let server_ts = unix_timestamp_seconds();
@@ -189,12 +191,15 @@ async fn screen(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let filename = format!(
-        "{}_{}_{}.webp",
-        client_ts,
-        server_ts,
-        Local::now().format("%Y-%m-%d %H:%M:%S"),
-    );
+    let extension = if content_type == ContentType::png() {
+        "png"
+    } else if content_type == ContentType::jpeg() {
+        "jpg"
+    } else {
+        return Err(StatusCode::BAD_REQUEST);
+    };
+
+    let filename = format!("{client_ts}.{extension}");
     tokio::fs::write(fp_dir.join(&filename), body)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

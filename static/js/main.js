@@ -116,6 +116,18 @@ function postRequest(url, clientTs, fp, body, contentType) {
     return flushPendingRequests();
 }
 
+function canvasToBlob(canvas, type, quality) {
+    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+}
+
+async function encodeImage(canvas) {
+    const list = await Promise.all([
+        canvasToBlob(canvas, "image/png"),
+        canvasToBlob(canvas, "image/jpeg", 0.95),
+    ]);
+    return list.filter(x => x !== null).reduce((a, b) => { return b.size < a.size ? b : a; });
+}
+
 async function checkInternet() {
     const timestamp = unixTimestampSeconds();
 
@@ -200,26 +212,15 @@ async function checkScreen() {
     }
 
     const timestamp = unixTimestampSeconds();
-    canvas.toBlob((blob) => {
-        if (!blob) {
-            return;
-        }
-        postRequest("./screen", timestamp, fingerprint, blob, "image/webp");
-    }, "image/webp", 0.5);
+    const blob = await encodeImage(canvas);
+    postRequest("./screen", timestamp, fingerprint, blob, blob.type);
 }
 
-function setupBeforeUnload() {
-    window.addEventListener("beforeunload", (event) => {
-        event.preventDefault();
-        event.returnValue = "Attenzione: stai per uscire dalla pagina di controllo! Se procedi e la gara è ancora in corso, verrai squalificato!";
-        return event.returnValue;
-    });
-}
-
-function setupIntervals() {
-    setInterval(checkInternet, INTERNET_CHECK_INTERVAL_MS);
-    setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
-}
+window.addEventListener("beforeunload", (event) => {
+    event.preventDefault();
+    event.returnValue = "Attenzione: stai per uscire dalla pagina di controllo! Se procedi e la gara è ancora in corso, verrai squalificato!";
+    return event.returnValue;
+});
 
 retryButton.addEventListener("click", () => {
     checkInternet();
@@ -229,11 +230,12 @@ video.addEventListener("playing", () => {
     setScreenPlayingState();
 });
 
+setInterval(checkInternet, INTERNET_CHECK_INTERVAL_MS);
+setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
+
 setupModalHandlers();
 setupVideoSizing();
 setupShareTriggers(toggleScreenSharing);
-setupBeforeUnload();
 openModal();
 checkInternet();
 toggleScreenSharing();
-setupIntervals();
