@@ -22,20 +22,18 @@ export function setInternetLoadingState() {
     failedStatusIcon.style.display = "none";
     loadingStatusIcon.style.display = "flex";
     loadingStatusText.textContent = "Loading";
-    debugElement.innerHTML = "Debug: ";
-    debugElement.style.display = "none";
+    debugElement.textContent = "";
     retryButton.disabled = true;
 }
 
 export function setInternetResultState(results) {
-    debugElement.innerHTML += results.map((good, index) => (good ? "o" : "x") + index).join("-");
+    debugElement.textContent = "Debug: " + results.map((good, index) => `${good ? "o" : "x"}${index + 1}`).join("-");
 
     if (results.every((value) => value === true)) {
         successStatusIcon.style.display = "flex";
         internetStatusIndicator.className = "notification-status status-success";
     } else {
         failedStatusIcon.style.display = "flex";
-        debugElement.style.display = "block";
         internetStatusIndicator.className = "notification-status status-failed";
     }
     retryButton.disabled = false;
@@ -61,15 +59,13 @@ export function setScreenPlayingState() {
     videoIcon.style.display = "none";
 }
 
-export function closeModal() {
+function closeModal() {
     modalOverlay.style.display = "none";
-    document.body.style.overflow = "auto";
     floatingNotification.style.display = "flex";
 }
 
-export function openModal() {
+function openModal() {
     modalOverlay.style.display = "flex";
-    document.body.style.overflow = "hidden";
     floatingNotification.style.display = "none";
 }
 

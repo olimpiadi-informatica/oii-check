@@ -12,7 +12,6 @@ import {
 import {
     content,
     modalOverlay,
-    openModal,
     retryButton,
     setInternetLoadingState,
     setInternetResultState,
@@ -53,23 +52,6 @@ let isFlushingRequests = false;
 
 function unixTimestampSeconds() {
     return Date.now() / 1000;
-}
-
-async function urlContainsValue([url, value]) {
-    try {
-        const [resp] = await Promise.all([
-            fetch(url, {
-                signal: AbortSignal.timeout(INTERNET_CHECK_TIMEOUT_MS),
-                cache: "no-store",
-            }),
-            new Promise((resolve) => setTimeout(resolve, INTERNET_CHECK_MIN_DURATION_MS)),
-        ]);
-        if (!resp.ok) return false;
-        const text = await resp.text();
-        return text.includes(value);
-    } catch {
-        return false;
-    }
 }
 
 async function flushPendingRequests() {
@@ -116,23 +98,37 @@ function postRequest(url, clientTs, fp, body, contentType) {
     return flushPendingRequests();
 }
 
-function canvasToBlob(canvas, type, quality) {
-    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+async function internetTest() {
+    async function blocked([url, value]) {
+        try {
+            const resp = await fetch(url, {
+                signal: AbortSignal.timeout(INTERNET_CHECK_TIMEOUT_MS),
+                cache: "no-store",
+            });
+            if (!resp.ok) return true;
+            const text = await resp.text();
+            return !text.includes(value);
+        } catch {
+            return true;
+        }
+    }
+
+    return await Promise.all(TESTS.map(blocked));
 }
 
-async function encodeImage(canvas) {
-    const list = await Promise.all([
-        canvasToBlob(canvas, "image/png"),
-        canvasToBlob(canvas, "image/jpeg", 0.95),
+async function checkInternet_ui() {
+    setInternetLoadingState();
+    const [results] = await Promise.all([
+        internetTest(),
+        new Promise(resolve => setTimeout(resolve, INTERNET_CHECK_MIN_DURATION_MS)),
     ]);
-    return list.filter(x => x !== null).reduce((a, b) => { return b.size < a.size ? b : a; });
+    setInternetResultState(results);
 }
 
-async function checkInternet() {
+async function checkInternet_interval() {
     const timestamp = unixTimestampSeconds();
 
-    setInternetLoadingState();
-    const results = (await Promise.all(TESTS.map(urlContainsValue))).map((x) => !x);
+    const results = await internetTest();
     setInternetResultState(results);
 
     postRequest(
@@ -187,6 +183,18 @@ function toggleScreenSharing() {
         });
 }
 
+function canvasToBlob(canvas, type, quality) {
+    return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+}
+
+async function encodeImage(canvas) {
+    const list = await Promise.all([
+        canvasToBlob(canvas, "image/png"),
+        canvasToBlob(canvas, "image/jpeg", 0.95),
+    ]);
+    return list.filter(x => x !== null).reduce((a, b) => { return b.size < a.size ? b : a; });
+}
+
 async function checkScreen() {
     if (!video.srcObject || !video.srcObject.active) {
         return;
@@ -223,19 +231,18 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 retryButton.addEventListener("click", () => {
-    checkInternet();
+    checkInternet_ui();
 });
 
 video.addEventListener("playing", () => {
     setScreenPlayingState();
 });
 
-setInterval(checkInternet, INTERNET_CHECK_INTERVAL_MS);
+setInterval(checkInternet_interval, INTERNET_CHECK_INTERVAL_MS);
 setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
 
 setupModalHandlers();
 setupVideoSizing();
 setupShareTriggers(toggleScreenSharing);
-openModal();
-checkInternet();
+checkInternet_interval();
 toggleScreenSharing();
