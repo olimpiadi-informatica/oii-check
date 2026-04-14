@@ -14,7 +14,9 @@ use clap::Parser;
 use serde::{Deserialize, Serialize};
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
+use tower::Layer;
 use tower_http::services::ServeDir;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
 
 /// Command-line arguments for the OII check backend.
@@ -47,7 +49,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/internet", post(internet))
         .route("/screen", post(screen))
-        .fallback_service(ServeDir::new("static"))
+        .fallback_service(
+            SetResponseHeaderLayer::if_not_present(
+                http::header::CACHE_CONTROL,
+                http::HeaderValue::from_static("public, no-cache"),
+            )
+            .layer(ServeDir::new("static")),
+        )
         .layer(TraceLayer::new_for_http())
         .with_state(state);
 

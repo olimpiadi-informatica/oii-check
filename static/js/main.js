@@ -103,7 +103,7 @@ async function internetTest() {
         try {
             const resp = await fetch(url, {
                 signal: AbortSignal.timeout(INTERNET_CHECK_TIMEOUT_MS),
-                cache: "no-store",
+                cache: "no-store, no-cache",
             });
             if (!resp.ok) return true;
             const text = await resp.text();
