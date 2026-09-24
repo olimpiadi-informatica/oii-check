@@ -1,0 +1,14 @@
+# Server configuration
+listen = "127.0.0.1:3000"
+data_dir = "data"
+
+# Authentication configuration (Option A: CMS Tornado 4 signed cookie)
+[auth]
+method = "cms_cookie" # also accepts "cms" or "cms-cookie"
+cookie_name = "practice_login"
+secret = "your-cms-cookie-secret"
+
+# Authentication configuration (Option B: HTTP header)
+# [auth]
+# method = "header"
+# header_name = "X-OII-AUTH"

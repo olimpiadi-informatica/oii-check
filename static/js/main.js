@@ -91,7 +91,7 @@ function postRequest(url, clientTs, fp, body, contentType) {
                 "X-OII-CLIENT-TS": String(clientTs),
                 "X-OII-FP": fp,
             },
-            cors: "cors",
+            credentials: "include",
             body,
         },
     });
