@@ -7,6 +7,7 @@ import {
     SCREEN_CAPTURE_MAX_HEIGHT,
     SCREEN_CAPTURE_MAX_WIDTH,
     SCREEN_CHECK_INTERVAL_MS,
+    SEND_BUFFER_MAX_MINUTES,
     TESTS,
 } from "./config.js";
 import {
@@ -54,6 +55,16 @@ function unixTimestampSeconds() {
     return Date.now() / 1000;
 }
 
+function prunePendingRequests() {
+    if (!SEND_BUFFER_MAX_MINUTES || SEND_BUFFER_MAX_MINUTES <= 0) {
+        return;
+    }
+    const cutoff = unixTimestampSeconds() - SEND_BUFFER_MAX_MINUTES * 60;
+    while (pendingRequests.length > 0 && pendingRequests[0].timestamp < cutoff) {
+        pendingRequests.shift();
+    }
+}
+
 async function flushPendingRequests() {
     if (isFlushingRequests) {
         return;
@@ -61,6 +72,7 @@ async function flushPendingRequests() {
 
     isFlushingRequests = true;
     try {
+        prunePendingRequests();
         while (pendingRequests.length > 0) {
             const request = pendingRequests[0];
             let response;
@@ -75,6 +87,7 @@ async function flushPendingRequests() {
             }
 
             pendingRequests.shift();
+            prunePendingRequests();
         }
     } finally {
         isFlushingRequests = false;
@@ -84,6 +97,7 @@ async function flushPendingRequests() {
 function postRequest(url, clientTs, fp, body, contentType) {
     pendingRequests.push({
         url,
+        timestamp: clientTs,
         options: {
             method: "POST",
             headers: {
@@ -95,6 +109,7 @@ function postRequest(url, clientTs, fp, body, contentType) {
             body,
         },
     });
+    prunePendingRequests();
     return flushPendingRequests();
 }
 
@@ -103,7 +118,7 @@ async function internetTest() {
         try {
             const resp = await fetch(url, {
                 signal: AbortSignal.timeout(INTERNET_CHECK_TIMEOUT_MS),
-                cache: "no-store, no-cache",
+                cache: "no-store",
             });
             if (!resp.ok) return true;
             const text = await resp.text();
