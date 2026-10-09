@@ -11,9 +11,9 @@
 <body>
     <iframe id="content"></iframe>
 
-    <div class="floating-notification" id="floating-notification">
+    <div class="floating-notification" id="floating-notification" style="display: none;">
         <div class="notification-icons">
-            <div class="notification-icon" id="internet-status-icon">
+            <div class="notification-icon" id="internet-status-icon" style="display: none;">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.3" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3.26307 6.20844C1.68208 7.63584 0.999996 9 0.999996 9C0.499999 10 1.5 11.5 2.5 10C2.5 10 3.20445 8.82592 4.67025 7.61562L3.26307 6.20844Z" fill="#555"></path>
                     <path d="M7.64649 10.5919C5.64642 11.7762 5 13.5 5 13.5C4.50002 15 6.00002 15.5 6.5 14.5C6.5 14.5 7.26329 12.9734 9.15285 12.0982L7.64649 10.5919Z" fill="#555"></path>
@@ -24,7 +24,7 @@
                 </svg>
                 <span class="notification-status status-failed" id="internet-status-indicator"></span>
             </div>
-            <div class="notification-icon" id="screen-status-icon">
+            <div class="notification-icon" id="screen-status-icon" style="display: none;">
                 <svg class="video-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
                     <line x1="8" y1="21" x2="16" y2="21"></line>
@@ -43,53 +43,57 @@
                 <button class="close-button" id="close-modal">×</button>
             </div>
             <div class="modal-body">
-                <h3 class="modal-subtitle">Stato del controllo internet</h3>
+                <div id="internet-section" style="display: none;">
+                    <h3 class="modal-subtitle">Stato del controllo internet</h3>
 
-                <div class="status-indicators">
-                    <div class="status-item loading">
-                        <div class="status-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="12" y1="2" x2="12" y2="6"></line>
-                                <line x1="12" y1="18" x2="12" y2="22"></line>
-                                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-                                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-                                <line x1="2" y1="12" x2="6" y2="12"></line>
-                                <line x1="18" y1="12" x2="22" y2="12"></line>
-                                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-                                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-                            </svg>
+                    <div class="status-indicators">
+                        <div class="status-item loading">
+                            <div class="status-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="2" x2="12" y2="6"></line>
+                                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                    <line x1="2" y1="12" x2="6" y2="12"></line>
+                                    <line x1="18" y1="12" x2="22" y2="12"></line>
+                                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                </svg>
+                            </div>
+                            <span class="status-text">Loading</span>
                         </div>
-                        <span class="status-text">Loading</span>
+                        <div class="status-item success">
+                            <div class="status-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <span class="status-text">Successo</span>
+                        </div>
+                        <div class="status-item failed">
+                            <div class="status-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </div>
+                            <span class="status-text">Fallito</span>
+                        </div>
                     </div>
-                    <div class="status-item success">
-                        <div class="status-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <span class="status-text">Successo</span>
-                    </div>
-                    <div class="status-item failed">
-                        <div class="status-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </div>
-                        <span class="status-text">Fallito</span>
+
+                    <div class="debug">
+                        <div id="debug"></div>
+                        <button class="btn btn-primary" id="retry">Riprova il controllo internet</button>
                     </div>
                 </div>
 
-                <div class="debug">
-                    <div id="debug"></div>
-                    <button class="btn btn-primary" id="retry">Riprova il controllo internet</button>
-                </div>
-
-                <h3 class="modal-subtitle">Condivisione Schermo</h3>
-                <div class="video-container">
-                    <video class="video-preview" autoplay muted></video>
-                    <div class="silhouette"></div>
-                    <p class="silhouette-text">Clicca qui per condividere lo schermo...</p>
+                <div id="screen-section" style="display: none;">
+                    <h3 class="modal-subtitle">Condivisione Schermo</h3>
+                    <div class="video-container">
+                        <video class="video-preview" autoplay muted></video>
+                        <div class="silhouette"></div>
+                        <p class="silhouette-text">Clicca qui per condividere lo schermo...</p>
+                    </div>
                 </div>
             </div>
         </div>

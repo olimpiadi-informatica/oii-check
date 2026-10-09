@@ -1,3 +1,5 @@
+import { ENABLE_INTERNET_CHECK, ENABLE_SCREEN_RECORDING } from "./config.js";
+
 export const content = document.getElementById("content");
 export const retryButton = document.querySelector("#retry");
 export const video = document.querySelector(".video-preview");
@@ -8,9 +10,14 @@ const closeModalButton = document.querySelector("#close-modal");
 const debugElement = document.querySelector("#debug");
 const failedStatusIcon = document.querySelector(".failed .status-icon");
 const floatingNotification = document.querySelector("#floating-notification");
+const internetSection = document.querySelector("#internet-section");
+const internetStatusIcon = document.querySelector("#internet-status-icon");
 const internetStatusIndicator = document.querySelector("#internet-status-indicator");
 const loadingStatusIcon = document.querySelector(".loading .status-icon");
 const loadingStatusText = document.querySelector(".loading .status-text");
+const modalTitle = document.querySelector(".modal-title");
+const screenSection = document.querySelector("#screen-section");
+const screenStatusIcon = document.querySelector("#screen-status-icon");
 const screenStatusIndicator = document.querySelector("#screen-status-indicator");
 const silhouette = document.querySelector(".silhouette");
 const silhouetteText = document.querySelector(".silhouette-text");
@@ -18,6 +25,7 @@ const successStatusIcon = document.querySelector(".success .status-icon");
 const videoIcon = document.querySelector(".video-icon");
 
 export function setInternetLoadingState() {
+    if (!ENABLE_INTERNET_CHECK) return;
     successStatusIcon.style.display = "none";
     failedStatusIcon.style.display = "none";
     loadingStatusIcon.style.display = "flex";
@@ -27,6 +35,7 @@ export function setInternetLoadingState() {
 }
 
 export function setInternetResultState(results) {
+    if (!ENABLE_INTERNET_CHECK) return;
     debugElement.textContent = "Debug: " + results.map((good, index) => `${good ? "o" : "x"}${index + 1}`).join("-");
 
     if (results.every((value) => value === true)) {
@@ -42,6 +51,7 @@ export function setInternetResultState(results) {
 }
 
 export function setScreenStoppedState() {
+    if (!ENABLE_SCREEN_RECORDING) return;
     screenStatusIndicator.className = "notification-status status-failed";
     silhouette.style.display = "flex";
     silhouetteText.style.display = "block";
@@ -52,6 +62,7 @@ export function setScreenStoppedState() {
 }
 
 export function setScreenPlayingState() {
+    if (!ENABLE_SCREEN_RECORDING) return;
     silhouette.style.display = "none";
     silhouetteText.style.display = "none";
     screenStatusIndicator.className = "notification-status status-success";
@@ -61,15 +72,22 @@ export function setScreenPlayingState() {
 
 function closeModal() {
     modalOverlay.style.display = "none";
-    floatingNotification.style.display = "flex";
+    if (ENABLE_INTERNET_CHECK || ENABLE_SCREEN_RECORDING) {
+        floatingNotification.style.display = "flex";
+    }
 }
 
 function openModal() {
-    modalOverlay.style.display = "flex";
-    floatingNotification.style.display = "none";
+    if (ENABLE_INTERNET_CHECK || ENABLE_SCREEN_RECORDING) {
+        modalOverlay.style.display = "flex";
+        floatingNotification.style.display = "none";
+    }
 }
 
 export function setupModalHandlers() {
+    if (!ENABLE_INTERNET_CHECK && !ENABLE_SCREEN_RECORDING) {
+        return;
+    }
     closeModalButton.addEventListener("click", closeModal);
     modalOverlay.addEventListener("click", (event) => {
         if (event.target === modalOverlay) {
@@ -85,6 +103,7 @@ export function setupModalHandlers() {
 }
 
 export function setupVideoSizing() {
+    if (!ENABLE_SCREEN_RECORDING) return;
     const currWidth = video.clientWidth;
     const aspectRatio = window.screen.width / window.screen.height;
     video.style.width = `${currWidth}px`;
@@ -92,7 +111,35 @@ export function setupVideoSizing() {
 }
 
 export function setupShareTriggers(toggleScreenSharing) {
+    if (!ENABLE_SCREEN_RECORDING) return;
     video.addEventListener("click", toggleScreenSharing);
     silhouette.addEventListener("click", toggleScreenSharing);
     silhouetteText.addEventListener("click", toggleScreenSharing);
 }
+
+export function setupUI() {
+    if (ENABLE_INTERNET_CHECK) {
+        if (internetSection) internetSection.style.display = "block";
+        if (internetStatusIcon) internetStatusIcon.style.display = "flex";
+    }
+
+    if (ENABLE_SCREEN_RECORDING) {
+        if (screenSection) screenSection.style.display = "block";
+        if (screenStatusIcon) screenStatusIcon.style.display = "flex";
+    }
+
+    if (!ENABLE_INTERNET_CHECK && !ENABLE_SCREEN_RECORDING) {
+        if (modalOverlay) modalOverlay.style.display = "none";
+    }
+
+    if (modalTitle) {
+        if (ENABLE_INTERNET_CHECK && !ENABLE_SCREEN_RECORDING) {
+            modalTitle.textContent = "Controllo blocco Internet";
+        } else if (!ENABLE_INTERNET_CHECK && ENABLE_SCREEN_RECORDING) {
+            modalTitle.textContent = "Condivisione Schermo";
+        } else if (ENABLE_INTERNET_CHECK && ENABLE_SCREEN_RECORDING) {
+            modalTitle.textContent = "Controllo blocco Internet e Schermo";
+        }
+    }
+}
+

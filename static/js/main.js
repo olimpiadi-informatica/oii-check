@@ -1,5 +1,7 @@
 import {
     CLIENT_ID_STORAGE_KEY,
+    ENABLE_INTERNET_CHECK,
+    ENABLE_SCREEN_RECORDING,
     getContentSrc,
     INTERNET_CHECK_INTERVAL_MS,
     INTERNET_CHECK_MIN_DURATION_MS,
@@ -20,6 +22,7 @@ import {
     setScreenStoppedState,
     setupModalHandlers,
     setupShareTriggers,
+    setupUI,
     setupVideoSizing,
     video,
     videoMini,
@@ -109,7 +112,6 @@ function postRequest(url, clientTs, fp, body, contentType) {
             body,
         },
     });
-    prunePendingRequests();
     return flushPendingRequests();
 }
 
@@ -132,6 +134,9 @@ async function internetTest() {
 }
 
 async function checkInternet_ui() {
+    if (!ENABLE_INTERNET_CHECK) {
+        return;
+    }
     setInternetLoadingState();
     const [results] = await Promise.all([
         internetTest(),
@@ -141,6 +146,9 @@ async function checkInternet_ui() {
 }
 
 async function checkInternet_interval() {
+    if (!ENABLE_INTERNET_CHECK) {
+        return;
+    }
     const timestamp = unixTimestampSeconds();
 
     const results = await internetTest();
@@ -172,6 +180,9 @@ function checkStream(stream) {
 }
 
 function toggleScreenSharing() {
+    if (!ENABLE_SCREEN_RECORDING) {
+        return;
+    }
     if (video.srcObject && video.srcObject.active) {
         video.srcObject.getTracks().forEach((track) => track.stop());
         setScreenStoppedState();
@@ -211,6 +222,9 @@ async function encodeImage(canvas) {
 }
 
 async function checkScreen() {
+    if (!ENABLE_SCREEN_RECORDING) {
+        return;
+    }
     if (!video.srcObject || !video.srcObject.active) {
         return;
     }
@@ -240,24 +254,31 @@ async function checkScreen() {
 }
 
 window.addEventListener("beforeunload", (event) => {
+    if (!ENABLE_INTERNET_CHECK && !ENABLE_SCREEN_RECORDING) {
+        return;
+    }
     event.preventDefault();
     event.returnValue = "Attenzione: stai per uscire dalla pagina di controllo! Se procedi e la gara è ancora in corso, verrai squalificato!";
     return event.returnValue;
 });
 
-retryButton.addEventListener("click", () => {
-    checkInternet_ui();
-});
-
-video.addEventListener("playing", () => {
-    setScreenPlayingState();
-});
-
-setInterval(checkInternet_interval, INTERNET_CHECK_INTERVAL_MS);
-setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
-
+setupUI();
 setupModalHandlers();
-setupVideoSizing();
-setupShareTriggers(toggleScreenSharing);
-checkInternet_interval();
-toggleScreenSharing();
+
+if (ENABLE_INTERNET_CHECK) {
+    retryButton.addEventListener("click", () => {
+        checkInternet_ui();
+    });
+    setInterval(checkInternet_interval, INTERNET_CHECK_INTERVAL_MS);
+    checkInternet_interval();
+}
+
+if (ENABLE_SCREEN_RECORDING) {
+    video.addEventListener("playing", () => {
+        setScreenPlayingState();
+    });
+    setInterval(checkScreen, SCREEN_CHECK_INTERVAL_MS);
+    setupVideoSizing();
+    setupShareTriggers(toggleScreenSharing);
+    toggleScreenSharing();
+}
