@@ -5,6 +5,7 @@ data_dir = "data"
 # Authentication configuration (Option A: CMS Tornado 4 signed cookie)
 [auth]
 method = "cms_cookie" # also accepts "cms" or "cms-cookie"
+# Optional: omit cookie_name to autodetect any *_login cookie (picking the most recent one)
 cookie_name = "practice_login"
 secret = "your-cms-cookie-secret"
 

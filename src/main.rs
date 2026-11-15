@@ -239,7 +239,23 @@ mod tests {
         assert_eq!(config.data_dir, PathBuf::from("contest_data"));
         match config.auth {
             AuthConfig::CmsCookie { cookie_name, secret } => {
-                assert_eq!(cookie_name, "practice_login");
+                assert_eq!(cookie_name.as_deref(), Some("practice_login"));
+                assert_eq!(secret, "cms_secret");
+            }
+            _ => panic!("Expected CmsCookie"),
+        }
+
+        let autodetect_toml = r#"
+            listen = "0.0.0.0:8000"
+            data_dir = "contest_data"
+            [auth]
+            method = "cms"
+            secret = "cms_secret"
+        "#;
+        let autodetect_config: Config = toml::from_str(autodetect_toml).unwrap();
+        match autodetect_config.auth {
+            AuthConfig::CmsCookie { cookie_name, secret } => {
+                assert_eq!(cookie_name, None);
                 assert_eq!(secret, "cms_secret");
             }
             _ => panic!("Expected CmsCookie"),

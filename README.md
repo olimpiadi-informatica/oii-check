@@ -56,7 +56,7 @@ Client-side parameters are configured in [`static/js/config.js`](static/js/confi
 | `listen` | string | Socket address to bind to (e.g. `"127.0.0.1:3000"` or `"0.0.0.0:8080"`). |
 | `data_dir` | string | Directory where telemetry logs and captured screenshots are stored. |
 | `auth.method` | string | Authentication method (`"cms_cookie"` or `"header"`). |
-| `auth.cookie_name` | string | Cookie name when using CMS cookie authentication. |
+| `auth.cookie_name` | string | Optional cookie name when using CMS cookie authentication; if omitted, autodetects `*_login` cookies and uses the most recently issued valid one. |
 | `auth.secret` | string | Shared HMAC secret used to verify CMS signed cookies (hex-encoded or raw string). |
 | `auth.header_name` | string | Name of the HTTP request header when using header authentication. |
 
