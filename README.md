@@ -138,3 +138,5 @@ cargo build --release
    ```bash
    cargo run --release -- config.toml
    ```
+
+A sample systemd user unit is provided in [`oii-check.service`](oii-check.service) (adjust `WorkingDirectory` and `ExecStart` to match your installation path).

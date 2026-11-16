@@ -1,0 +1,14 @@
+[Unit]
+Description=oii-check proctoring and network restriction monitor
+
+[Service]
+Type=simple
+# Must point to the directory containing static/ (and config.toml / data/ if relative)
+WorkingDirectory=%h/oii-check
+ExecStart=%h/oii-check/target/release/oii-check config.toml
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=default.target
