@@ -260,6 +260,68 @@ async function checkScreen() {
     postRequest("./screen", timestamp, fingerprint, blob, blob.type);
 }
 
+let keepaliveAudioCtx = null;
+
+function startAudioKeepalive() {
+    if (keepaliveAudioCtx) {
+        if (keepaliveAudioCtx.state === "suspended") {
+            keepaliveAudioCtx.resume().catch(() => {});
+        }
+        return;
+    }
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+        return;
+    }
+
+    try {
+        const ctx = new AudioCtx();
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.frequency.value = 20;
+        gain.gain.value = 0.0001;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        keepaliveAudioCtx = ctx;
+    } catch {
+        // Ignore if AudioContext is blocked or unsupported.
+    }
+}
+
+function setupAudioKeepalive() {
+    const onGesture = () => {
+        startAudioKeepalive();
+        if (keepaliveAudioCtx && keepaliveAudioCtx.state === "running") {
+            document.removeEventListener("pointerdown", onGesture);
+            document.removeEventListener("keydown", onGesture);
+        }
+    };
+    document.addEventListener("pointerdown", onGesture);
+    document.addEventListener("keydown", onGesture);
+}
+
+function startWebSocketKeepalive() {
+    const wsUrl = new URL("./ws", window.location.href);
+    wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+
+    let socket;
+    try {
+        socket = new WebSocket(wsUrl);
+    } catch {
+        setTimeout(startWebSocketKeepalive, 5000);
+        return;
+    }
+
+    socket.addEventListener("close", () => {
+        setTimeout(startWebSocketKeepalive, 5000);
+    });
+    socket.addEventListener("error", () => {
+        socket.close();
+    });
+}
+
 window.addEventListener("beforeunload", (event) => {
     if (!ENABLE_INTERNET_CHECK && !ENABLE_SCREEN_RECORDING) {
         return;
@@ -271,6 +333,8 @@ window.addEventListener("beforeunload", (event) => {
 
 setupUI();
 setupModalHandlers();
+startWebSocketKeepalive();
+setupAudioKeepalive();
 
 if (ENABLE_INTERNET_CHECK) {
     retryButton.addEventListener("click", () => {

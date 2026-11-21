@@ -6,10 +6,12 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use auth::{Auth, AuthConfig};
 use axum::body::Bytes;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{DefaultBodyLimit, FromRequestParts, Json, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
-use axum::routing::post;
+use axum::response::IntoResponse;
+use axum::routing::{get, post};
 use axum::{Router, serve};
 use axum_extra::TypedHeader;
 use axum_extra::headers::ContentType;
@@ -59,6 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         .route("/internet", post(internet))
         .route("/no-screen", post(no_screen))
+        .route("/ws", get(ws_handler))
         .route(
             "/screen",
             post(screen).layer(DefaultBodyLimit::max(
@@ -156,6 +159,18 @@ struct NoScreenRecord {
     fp: String,
     no_screen: bool,
     server_ts: f64,
+}
+
+async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(handle_ws)
+}
+
+async fn handle_ws(mut socket: WebSocket) {
+    while let Some(Ok(msg)) = socket.recv().await {
+        if matches!(msg, Message::Close(_)) {
+            break;
+        }
+    }
 }
 
 async fn append_log_record<T: Serialize>(
