@@ -55,6 +55,7 @@ Client-side parameters are configured in [`static/js/config.js`](static/js/confi
 |-----------|------|-------------|
 | `listen` | string | Socket address to bind to (e.g. `"127.0.0.1:3000"` or `"0.0.0.0:8080"`). |
 | `data_dir` | string | Directory where telemetry logs and captured screenshots are stored. |
+| `max_screen_size_kib` | integer | Optional maximum screenshot upload size in KiB for `POST /screen` (defaults to `16384`, i.e. 16 MiB). |
 | `auth.method` | string | Authentication method (`"cms_cookie"` or `"header"`). |
 | `auth.cookie_name` | string | Optional cookie name when using CMS cookie authentication; if omitted, autodetects `*_login` cookies and uses the most recently issued valid one. |
 | `auth.secret` | string | Shared HMAC secret used to verify CMS signed cookies (hex-encoded or raw string). |

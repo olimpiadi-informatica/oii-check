@@ -6,7 +6,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use auth::{Auth, AuthConfig};
 use axum::body::Bytes;
-use axum::extract::{FromRequestParts, Json, State};
+use axum::extract::{DefaultBodyLimit, FromRequestParts, Json, State};
 use axum::http::StatusCode;
 use axum::http::request::Parts;
 use axum::routing::post;
@@ -21,10 +21,16 @@ use tower_http::services::ServeDir;
 use tower_http::set_header::SetResponseHeaderLayer;
 use tower_http::trace::TraceLayer;
 
+fn default_max_screen_size_kib() -> usize {
+    16 * 1024
+}
+
 #[derive(Deserialize)]
 struct Config {
     listen: SocketAddr,
     data_dir: PathBuf,
+    #[serde(default = "default_max_screen_size_kib")]
+    max_screen_size_kib: usize,
     auth: AuthConfig,
 }
 
@@ -52,7 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/internet", post(internet))
-        .route("/screen", post(screen))
+        .route(
+            "/screen",
+            post(screen).layer(DefaultBodyLimit::max(
+                config.max_screen_size_kib.saturating_mul(1024),
+            )),
+        )
         .fallback_service(
             SetResponseHeaderLayer::if_not_present(
                 http::header::CACHE_CONTROL,
@@ -237,6 +248,7 @@ mod tests {
         let config: Config = toml::from_str(toml_str).unwrap();
         assert_eq!(config.listen, "0.0.0.0:8000".parse().unwrap());
         assert_eq!(config.data_dir, PathBuf::from("contest_data"));
+        assert_eq!(config.max_screen_size_kib, 16 * 1024);
         match config.auth {
             AuthConfig::CmsCookie { cookie_name, secret } => {
                 assert_eq!(cookie_name.as_deref(), Some("practice_login"));
@@ -248,11 +260,13 @@ mod tests {
         let autodetect_toml = r#"
             listen = "0.0.0.0:8000"
             data_dir = "contest_data"
+            max_screen_size_kib = 8192
             [auth]
             method = "cms"
             secret = "cms_secret"
         "#;
         let autodetect_config: Config = toml::from_str(autodetect_toml).unwrap();
+        assert_eq!(autodetect_config.max_screen_size_kib, 8192);
         match autodetect_config.auth {
             AuthConfig::CmsCookie { cookie_name, secret } => {
                 assert_eq!(cookie_name, None);

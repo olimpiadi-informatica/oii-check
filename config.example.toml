@@ -1,6 +1,7 @@
 # Server configuration
 listen = "127.0.0.1:3000"
 data_dir = "data"
+max_screen_size_kib = 16384 # 16 MiB
 
 # Authentication configuration (Option A: CMS Tornado 4 signed cookie)
 [auth]
