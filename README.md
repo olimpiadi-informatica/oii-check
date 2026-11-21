@@ -109,6 +109,19 @@ Each line is a JSON object corresponding to either an internet check or a screen
 
 - `filename`: Image filename within `{data_dir}/{user}/{fp}/`.
 
+#### No-Screen Record
+
+When screen recording is enabled (`ENABLE_SCREEN_RECORDING = true`) and the user has not enabled (or has stopped) screen sharing, `POST /no-screen` logs:
+
+```json
+{
+  "client_ts": 1775836491.512,
+  "fp": "c8d0a5183f3e9c4b7260e1d0f85b34a1",
+  "no_screen": true,
+  "server_ts": 1775836491.545
+}
+```
+
 ---
 
 ## Building and Running

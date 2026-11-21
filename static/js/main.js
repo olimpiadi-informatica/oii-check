@@ -97,20 +97,26 @@ async function flushPendingRequests() {
     }
 }
 
-function postRequest(url, clientTs, fp, body, contentType) {
+function postRequest(url, clientTs, fp, body = null, contentType = null) {
+    const headers = {
+        "X-OII-CLIENT-TS": String(clientTs),
+        "X-OII-FP": fp,
+    };
+    if (contentType) {
+        headers["Content-Type"] = contentType;
+    }
+    const options = {
+        method: "POST",
+        headers,
+        credentials: "include",
+    };
+    if (body !== null) {
+        options.body = body;
+    }
     pendingRequests.push({
         url,
         timestamp: clientTs,
-        options: {
-            method: "POST",
-            headers: {
-                "Content-Type": contentType,
-                "X-OII-CLIENT-TS": String(clientTs),
-                "X-OII-FP": fp,
-            },
-            credentials: "include",
-            body,
-        },
+        options,
     });
     return flushPendingRequests();
 }
@@ -226,6 +232,7 @@ async function checkScreen() {
         return;
     }
     if (!video.srcObject || !video.srcObject.active) {
+        postRequest("./no-screen", unixTimestampSeconds(), fingerprint);
         return;
     }
 

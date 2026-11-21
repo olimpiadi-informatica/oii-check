@@ -58,6 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = Router::new()
         .route("/internet", post(internet))
+        .route("/no-screen", post(no_screen))
         .route(
             "/screen",
             post(screen).layer(DefaultBodyLimit::max(
@@ -149,6 +150,32 @@ struct ScreenRecord {
     server_ts: f64,
 }
 
+#[derive(Serialize)]
+struct NoScreenRecord {
+    client_ts: f64,
+    fp: String,
+    no_screen: bool,
+    server_ts: f64,
+}
+
+async fn append_log_record<T: Serialize>(
+    token_dir: &std::path::Path,
+    record: &T,
+) -> Result<(), StatusCode> {
+    let mut file = tokio::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(token_dir.join("logs.json"))
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let mut line = serde_json::to_vec(record).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    line.push(b'\n');
+    file.write_all(&line)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(())
+}
+
 async fn internet(
     State(state): State<AppState>,
     Auth(token): Auth,
@@ -167,19 +194,27 @@ async fn internet(
         server_ts: unix_timestamp_seconds(),
     };
 
-    let mut file = tokio::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(token_dir.join("logs.json"))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let mut line = serde_json::to_vec(&record).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    line.push(b'\n');
-    file.write_all(&line)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    append_log_record(&token_dir, &record).await
+}
 
-    Ok(())
+async fn no_screen(
+    State(state): State<AppState>,
+    Auth(token): Auth,
+    ClientTs(client_ts): ClientTs,
+    Fingerprint(fp): Fingerprint,
+) -> Result<(), StatusCode> {
+    let token_dir = state.data_dir.join(&token);
+    tokio::fs::create_dir_all(&token_dir)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let record = NoScreenRecord {
+        client_ts,
+        fp,
+        no_screen: true,
+        server_ts: unix_timestamp_seconds(),
+    };
+
+    append_log_record(&token_dir, &record).await
 }
 
 async fn screen(
@@ -216,19 +251,7 @@ async fn screen(
         filename,
         server_ts,
     };
-    let mut file = tokio::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(token_dir.join("logs.json"))
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    let mut line = serde_json::to_vec(&record).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    line.push(b'\n');
-    file.write_all(&line)
-        .await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    Ok(())
+    append_log_record(&token_dir, &record).await
 }
 
 #[cfg(test)]
